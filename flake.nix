@@ -12,7 +12,11 @@
         pkgs = import nixpkgs { inherit system; };
       in {
         devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [ sbt verilator ];
+          buildInputs = with pkgs; [ 
+            sbt
+            verilator
+            circt
+          ];
           shellHook = ''
             export SHELL=$(which zsh)
             exec $SHELL
