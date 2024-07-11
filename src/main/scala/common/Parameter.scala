@@ -18,4 +18,6 @@ trait HasCoreParameter {
   // val AddrBits  = XLEN // AddrBits is used in some cases
   // val DataBits  = XLEN // 一个 word 有几个 bit
   val DataBytes = XLEN >> 3 // 一个 word 有几个字节
+
+  val ECALL_ADDRESS = 0x1c090000
 }
