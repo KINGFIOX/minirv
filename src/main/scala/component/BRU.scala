@@ -14,8 +14,8 @@ object BRUOpType extends ChiselEnum {
 
 class BRU extends Module with HasCoreParameter {
   val io = IO(new Bundle {
-    val a       = Input(UInt(XLEN.W))
-    val b       = Input(UInt(XLEN.W))
+    val rs1     = Input(UInt(XLEN.W))
+    val rs2     = Input(UInt(XLEN.W))
     val bru_op  = Input(BRUOpType())
     val br_flag = Output(Bool())
   })
@@ -24,32 +24,32 @@ class BRU extends Module with HasCoreParameter {
 
   switch(io.bru_op) {
     is(BRUOpType.bru_BLT) {
-      when(io.a.asSInt < io.b.asSInt) {
+      when(io.rs1.asSInt < io.rs2.asSInt) {
         io.br_flag := true.B
       }
     }
     is(BRUOpType.bru_BLTU) {
-      when(io.a < io.b) {
+      when(io.rs1 < io.rs2) {
         io.br_flag := true.B
       }
     }
     is(BRUOpType.bru_BGE) {
-      when(io.a.asSInt >= io.b.asSInt) {
+      when(io.rs1.asSInt >= io.rs2.asSInt) {
         io.br_flag := true.B
       }
     }
     is(BRUOpType.bru_BGEU) {
-      when(io.a >= io.b) {
+      when(io.rs1 >= io.rs2) {
         io.br_flag := true.B
       }
     }
     is(BRUOpType.bru_BEQ) {
-      when(io.a === io.b) {
+      when(io.rs1 === io.rs2) {
         io.br_flag := true.B
       }
     }
     is(BRUOpType.bru_BNE) {
-      when(io.a =/= io.b) {
+      when(io.rs1 =/= io.rs2) {
         io.br_flag := true.B
       }
     }
