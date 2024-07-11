@@ -1,15 +1,9 @@
-package utils
+package component
 
 import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
-
-/** @brief
-  *   有几个寄存器
-  */
-trait HasRegFileParameter {
-  val NRReg = 32
-}
+import common.HasRegFileParameter
 
 /** @brief
   *   寄存器堆, 但是其实不是一个 chisel 的 Module
