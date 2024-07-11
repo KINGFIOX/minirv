@@ -4,29 +4,67 @@ module ALU (
     reset,
     input  [31:0] io_a,
     io_b,
-    input  [ 3:0] io_alu_op,
-    output [31:0] io_out
+    input  [ 4:0] io_alu_op,
+    output [31:0] io_out,
+    output        io_br_flag
 );
 
+  wire        _GEN = io_alu_op == 5'h0;
+  wire        _GEN_0 = io_alu_op == 5'h1;
+  wire        _GEN_1 = io_alu_op == 5'h2;
+  wire        _GEN_2 = io_alu_op == 5'h3;
+  wire        _GEN_3 = io_alu_op == 5'h4;
+  wire        _GEN_4 = io_alu_op == 5'h5;
+  wire        _GEN_5 = io_alu_op == 5'h6;
   wire [62:0] _io_out_T_8 = {31'h0, io_a} << io_b[4:0];
-  wire [15:0][31:0] _GEN = {
-    {32'h0},
-    {32'h0},
-    {{31'h0, io_a != io_b}},
-    {{31'h0, io_a == io_b}},
-    {{31'h0, io_a >= io_b}},
-    {{31'h0, $signed(io_a) >= $signed(io_b)}},
-    {{31'h0, io_a < io_b}},
-    {{31'h0, $signed(io_a) < $signed(io_b)}},
-    {$signed($signed(io_a) >>> io_b[4:0])},
-    {io_a >> io_b[4:0]},
-    {_io_out_T_8[31:0]},
-    {io_a ^ io_b},
-    {io_a | io_b},
-    {io_a & io_b},
-    {io_a - io_b},
-    {io_a + io_b}
-  };
-  assign io_out = _GEN[io_alu_op];
+  wire        _GEN_6 = io_alu_op == 5'h7;
+  wire        _GEN_7 = io_alu_op == 5'h8;
+  wire        _GEN_8 = io_alu_op == 5'h9;
+  wire        _GEN_9 = io_alu_op == 5'hA;
+  wire        _GEN_10 = io_alu_op == 5'hB;
+  wire        _GEN_11 = io_alu_op == 5'hC;
+  wire        _GEN_12 = io_alu_op == 5'hD;
+  wire        _GEN_13 = io_alu_op == 5'hE;
+  wire        _GEN_14 = io_alu_op == 5'hF;
+  wire        _GEN_15 = io_alu_op == 5'h10;
+  assign io_out =
+    _GEN
+      ? 32'h0
+      : _GEN_0
+          ? io_a + io_b
+          : _GEN_1
+              ? io_a - io_b
+              : _GEN_2
+                  ? io_a & io_b
+                  : _GEN_3
+                      ? io_a | io_b
+                      : _GEN_4
+                          ? io_a ^ io_b
+                          : _GEN_5
+                              ? _io_out_T_8[31:0]
+                              : _GEN_6
+                                  ? io_a >> io_b[4:0]
+                                  : _GEN_7
+                                      ? $signed(
+      $signed(io_a) >>> io_b[4:0]
+  ) : _GEN_8 ? {31'h0, $signed(
+      io_a
+  ) < $signed(
+      io_b
+  )} : _GEN_9 ? {31'h0, io_a < io_b} : _GEN_10 | _GEN_11 | _GEN_12 | _GEN_13 | _GEN_14 | _GEN_15 |
+      io_alu_op != 5'h11 ? 32'h0 : io_a + io_b & 32'hFFFFFFFE;
+  assign io_br_flag =
+    ~(_GEN | _GEN_0 | _GEN_1 | _GEN_2 | _GEN_3 | _GEN_4 | _GEN_5 | _GEN_6 | _GEN_7
+      | _GEN_8 | _GEN_9)
+    & (_GEN_10
+         ? $signed(
+      io_a
+  ) < $signed(
+      io_b
+  ) : _GEN_11 ? io_a < io_b : _GEN_12 ? $signed(
+      io_a
+  ) >= $signed(
+      io_b
+  ) : _GEN_13 ? io_a >= io_b : _GEN_14 ? io_a == io_b : _GEN_15 & io_a != io_b);
 endmodule
 
