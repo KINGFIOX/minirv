@@ -1,3 +1,7 @@
+/** @brief
+  *   ALU
+  */
+
 package component;
 
 import chisel3._

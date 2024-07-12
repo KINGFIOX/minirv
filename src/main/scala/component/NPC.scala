@@ -1,8 +1,13 @@
+/** @brief
+  *   这里面会进行一次计算
+  */
+
 package component
 
 import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
+import common.HasECALLParameter
 
 object NPCOpType extends ChiselEnum {
   val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
@@ -11,7 +16,7 @@ object NPCOpType extends ChiselEnum {
 /** @brief
   *   jalr 来自于 alu , jal 来自于 alu, BR 直接来自于 sext(imm)
   */
-class NPC extends Module with HasCoreParameter {
+class NPC extends Module with HasCoreParameter with HasECALLParameter {
   val io = IO(new Bundle {
     val pc      = Input(UInt(XLEN.W)) // 先用 XLEN 吧
     val op      = Input(NPCOpType())
