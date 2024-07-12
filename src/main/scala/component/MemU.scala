@@ -18,10 +18,10 @@ object MemUOpType extends ChiselEnum {
 class MemU extends Module with HasCoreParameter with HasDRAMParameter {
   val io = IO(new Bundle {
     val offset = Input(UInt(XLEN.W)) // 立即数, 从 extu 出来
-    val base   = Input(UInt(XLEN.W)) // 基地址
+    val rs1    = Input(UInt(XLEN.W)) // base
+    val rs2    = Input(UInt(XLEN.W)) // sw in, offset(rs1), 这个 rs2 就是 in
     val op     = Input(MemUOpType())
-    val in     = Input(UInt(XLEN.W)) // 只有 store 的时候才有
-    val out    = Output(UInt(XLEN.W)) // 只有 load 的时候才有
+    val rd     = Output(UInt(XLEN.W)) // ld rd, offset(rs1) 这个 rd 就是 out
   })
 
   // TODO 暂时不清楚 dram 的 ip 核， 与总线的情况
