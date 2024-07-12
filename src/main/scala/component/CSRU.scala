@@ -10,7 +10,7 @@ import common.HasCoreParameter
 import common.HasCSRRegFileParameter
 
 object CSRUOpType extends ChiselEnum {
-  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC = Value
+  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC /* TODO ecall */ = Value
 }
 
 /** @brief
