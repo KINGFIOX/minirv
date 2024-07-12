@@ -9,7 +9,7 @@ import common.HasCoreParameter
   *   不过, 这里可能要拓展, 如果是 64 位指令的话
   */
 object MemUOpType extends ChiselEnum {
-  val memu_LB, memu_LH, memu_LW, memu_LBU, memu_LHU, memu_SB, memu_SH, memu_SW = Value
+  val memu_X, memu_LB, memu_LH, memu_LW, memu_LBU, memu_LHU, memu_SB, memu_SH, memu_SW = Value
 }
 
 /** @brief
@@ -18,7 +18,7 @@ object MemUOpType extends ChiselEnum {
 class MemU extends Module with HasCoreParameter with HasDRAMParameter {
   val io = IO(new Bundle {
     val offset = Input(UInt(XLEN.W)) // 立即数, 从 extu 出来
-    val rs1    = Input(UInt(XLEN.W)) // base
+    val rs1    = Input(UInt(XLEN.W)) // rs1 -> base
     val rs2    = Input(UInt(XLEN.W)) // sw in, offset(rs1), 这个 rs2 就是 in
     val op     = Input(MemUOpType())
     val rd     = Output(UInt(XLEN.W)) // ld rd, offset(rs1) 这个 rd 就是 out
