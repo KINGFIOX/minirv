@@ -5,10 +5,10 @@ import chisel3.util._
 import common.HasCoreParameter
 
 object EXTUOpType extends ChiselEnum {
-  val sextu_X, sextu_ALU, sextu_SHIFT, sextu_STORE, sextu_BRANCH, sextu_U, sextu_J, zextu_CSR = Value
+  val sextu_X, sextu_ALU, sextu_SHIFT, sextu_STORE, sextu_BRANCH, sextu_U, sextu_J = Value
 }
 
-class EXTU extends Module with HasCoreParameter {
+class SEXTU extends Module with HasCoreParameter {
   val io = IO(new Bundle {
     val inst = Input(UInt(XLEN.W))
     val op   = Input(EXTUOpType())
@@ -44,17 +44,13 @@ class EXTU extends Module with HasCoreParameter {
       val imm = Cat(io.inst(31) /* 20 */, io.inst(19, 12) /* 19..12 */, io.inst(20) /* 11 */, io.inst(30, 21) /* 10..1 */, 0.U(1.W) /* 0 */ )
       io.ext := Cat(imm /* 21 */, 0.U(11.W))
     }
-    is(EXTUOpType.zextu_CSR) {
-      val imm = io.inst(19, 15) // 5
-      io.ext := Cat(Fill(27 /* 32 - 5 */, 0.U), imm)
-    }
   }
 
 }
 
-object EXTU extends App {
+object SEXTU extends App {
   val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new EXTU,
+    new SEXTU,
     args = Array("--target-dir", "generated"),
     firtoolOpts = Array(
       "--strip-debug-info",
