@@ -7,7 +7,8 @@ import chisel3.util._
   *   有几个通用寄存器
   */
 trait HasRegFileParameter {
-  val NRReg = 32
+  val NRReg     = 32
+  val NRRegbits = log2Up(NRReg)
 }
 
 /** @brief
