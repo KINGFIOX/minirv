@@ -14,6 +14,15 @@ object CSRUOpType extends ChiselEnum {
 }
 
 /** @brief
+  *   寄存器堆, 但是其实不是一个 chisel 的 Module
+  */
+class CSRRegFile extends HasCoreParameter with HasCSRRegFileParameter {
+  val rf                            = Mem(NCSRReg, UInt(XLEN.W))
+  def read(addr: UInt): UInt        = Mux(addr === 0.U, 0.U, rf(addr))
+  def write(addr: UInt, data: UInt) = { rf(addr) := data(XLEN - 1, 0) }
+}
+
+/** @brief
   *   用于 CSR 操作的模块
   */
 class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter {
@@ -24,7 +33,7 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter {
     val out = Output(UInt(XLEN.W)) // 读取出来 CSR 的值, rd 由 controller 控制
   })
 
-  val csr_regfile = Mem(4096, UInt(XLEN.W)) // 内部维护一个 csr_regfile
+  val csr_regfile = new CSRRegFile // 内部维护一个 csr_regfile
 
   io.out := 0.U
 
@@ -33,19 +42,19 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter {
       io.out := 0.U
     }
     is(CSRUOpType.csru_CSRRW) { // csr read & write
-      val t = csr_regfile(io.csr)
-      csr_regfile(io.csr) := io.rs1
-      io.out              := t
+      val t = csr_regfile.read(io.csr)
+      csr_regfile.write(io.csr, io.rs1)
+      io.out := t
     }
     is(CSRUOpType.csru_CSRRS) {
-      val t = csr_regfile(io.csr)
-      csr_regfile(io.csr) := t | io.rs1
-      io.out              := t
+      val t = csr_regfile.read(io.csr)
+      csr_regfile.write(io.csr, t | io.rs1)
+      io.out := t
     }
     is(CSRUOpType.csru_CSRRC) {
-      val t = csr_regfile(io.csr)
-      csr_regfile(io.csr) := t & ~io.rs1
-      io.out              := t
+      val t = csr_regfile.read(io.csr)
+      csr_regfile.write(io.csr, t & ~io.rs1)
+      io.out := t
     }
   }
 }
