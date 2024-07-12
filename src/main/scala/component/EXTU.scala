@@ -44,6 +44,10 @@ class EXTU extends Module with HasCoreParameter {
       val imm = Cat(io.inst(31) /* 20 */, io.inst(19, 12) /* 19..12 */, io.inst(20) /* 11 */, io.inst(30, 21) /* 10..1 */, 0.U(1.W) /* 0 */ )
       io.ext := Cat(imm /* 21 */, 0.U(11.W))
     }
+    is(EXTUOpType.zextu_CSR) {
+      val imm = io.inst(19, 15) // 5
+      io.ext := Cat(Fill(27 /* 32 - 5 */, 0.U), imm)
+    }
   }
 
 }
