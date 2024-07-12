@@ -19,7 +19,12 @@ trait HasCSRRegFileParameter {
 }
 
 trait HasECALLParameter {
-  val ECALL_ADDRESS = 0x1c090000
+  val ECALL_ADDRESS = 0x1c090000 /* 其实正常情况下, ecall 应该是调到 a7 指定的系统调用 */
+}
+
+trait HasDRAMParameter {
+  val DRAM_BASE = 0x80000000 // TODO
+  val DRAM_SIZE = 0x40000000
 }
 
 /** @brief
