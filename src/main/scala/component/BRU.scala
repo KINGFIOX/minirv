@@ -56,3 +56,14 @@ class BRU extends Module with HasCoreParameter {
 
   }
 }
+
+object BRU extends App {
+  val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
+    new BRU,
+    args = Array("--target-dir", "generated"),
+    firtoolOpts = Array(
+      "--strip-debug-info",
+      "-disable-all-randomization"
+    )
+  )
+}
