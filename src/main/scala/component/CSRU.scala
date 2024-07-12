@@ -29,7 +29,7 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter {
   val io = IO(new Bundle {
     val op  = Input(CSRUOpType())
     val csr = Input(UInt(NCSRbits.W))
-    val rs1 = Input(UInt(XLEN.W)) // zimm 或者 reg
+    val rs1 = Input(UInt(XLEN.W)) // Mux(控制信号 , zimm, rs1)
     val out = Output(UInt(XLEN.W)) // 读取出来 CSR 的值, rd 由 controller 控制
   })
 
