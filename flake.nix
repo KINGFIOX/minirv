@@ -19,6 +19,7 @@
             temurin-bin-17
             metals
             mill
+            metals
             bloop
             # c++
             # rocmPackages.llvm.clang-tools-extra
