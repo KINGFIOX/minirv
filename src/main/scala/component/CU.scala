@@ -33,7 +33,15 @@ object OP2_sel extends ChiselEnum {
   */
 class Decoder extends Module with HasCoreParameter {
   val io = IO(new Bundle {
-    val inst = Input(UInt(XLEN.W))
+    val inst    = Input(UInt(XLEN.W))
+    val alu_op  = Output(ALUOpType())
+    val op1_sel = Output(OP1_sel())
+    val op2_sel = Output(OP2_sel())
+    val op_mem  = Output(MemUOpType())
+    val csr_op  = Output(CSRUOpType())
+    val wb_sel  = Output(WB_sel())
+    val npc_op  = Output(NPCOpType())
+    val bru_op  = Output(BRUOpType())
     // output
   })
 
@@ -98,6 +106,17 @@ class Decoder extends Module with HasCoreParameter {
       // Instructions.MRET  -> List(ALUOpType.alu_X, OP2_X, MEN_X, REN_X, WB_X, CSRUOpType.csru_X)
     )
   )
+
+  val alu_op :: op1_sel :: op2_sel :: op_mem :: csr_op :: wb_sel :: npc_op :: bru_op :: Nil = csignals
+
+  io.alu_op  := alu_op
+  io.op1_sel := op1_sel
+  io.op2_sel := op2_sel
+  io.op_mem  := op_mem
+  io.csr_op  := csr_op
+  io.wb_sel  := wb_sel
+  io.npc_op  := npc_op
+  io.bru_op  := bru_op
 
 }
 
