@@ -38,10 +38,10 @@ class ALU extends Module with HasCoreParameter {
       io.out := 0.U // ALU 啥也不干
     }
     is(ALUOpType.alu_ADD) {
-      io.out := io.rs1 + io.rs2
+      io.out := (io.rs1.asSInt + io.rs2.asSInt).asUInt
     }
     is(ALUOpType.alu_SUB) {
-      io.out := io.rs1 - io.rs2
+      io.out := (io.rs1.asSInt - io.rs2.asSInt).asUInt
     }
     is(ALUOpType.alu_AND) {
       io.out := io.rs1 & io.rs2
@@ -65,7 +65,7 @@ class ALU extends Module with HasCoreParameter {
       io.out := (io.rs1.asSInt < io.rs2.asSInt).asUInt
     }
     is(ALUOpType.alu_SLTU) {
-      io.out := (io.rs1 < io.rs2).asUInt
+      io.out := io.rs1 < io.rs2
     }
     is(ALUOpType.alu_JALR) {
       // rs1
