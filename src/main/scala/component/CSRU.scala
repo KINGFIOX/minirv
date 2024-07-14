@@ -7,8 +7,56 @@ package component
 import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
-import common.HasCSRRegFileParameter
 import utils.MaskedRegMap
+import utils.ZeroExt
+import utils.GenMask
+
+/* ---------- ---------- 规定一些常量 ---------- ---------- */
+
+/** @brief
+  *   有几个 CSR 寄存器
+  */
+trait HasCSRRegFileParameter {
+  val NCSRbits = 12
+  val NCSRReg  = (1 << NCSRbits)
+}
+
+/** @brief
+  *   暂时只支持 ecall
+  */
+trait HasExceptionNO {
+  // def instrAddrMisaligned = 0
+  // def instrAccessFault    = 1
+  // def illegalInstr        = 2
+  // def breakPoint          = 3
+  // def loadAddrMisaligned  = 4
+  // def loadAccessFault     = 5
+  // def storeAddrMisaligned = 6
+  // def storeAccessFault    = 7
+  def ecallU = 8
+  // def ecallS              = 9
+  def ecallM = 11
+  // def instrPageFault = 12
+  // def loadPageFault  = 13
+  // def storePageFault = 15
+
+  val ExcPriority = Seq(
+    // breakPoint, // TODO: different BP has different priority
+    // instrPageFault,
+    // instrAccessFault,
+    // illegalInstr,
+    // instrAddrMisaligned,
+    ecallM,
+    // ecallS,
+    ecallU
+    // storeAddrMisaligned,
+    // loadAddrMisaligned,
+    // storePageFault,
+    // loadPageFault,
+    // storeAccessFault,
+    // loadAccessFault
+  )
+}
 
 trait HasCSRConst {
   // Machine Information Registers
@@ -46,6 +94,8 @@ object CSRUOpType extends ChiselEnum {
   val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC /* TODO ecall */ = Value
 }
 
+/* ---------- ---------- csr ---------- ---------- */
+
 /** @brief
   *   用于 CSR 操作的模块
   */
@@ -60,6 +110,19 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
   /* ---------- 初始化 csr 寄存器堆 ---------- */
 
   val csr_regfile = Mem(NCSRReg, UInt(XLEN.W))
+
+  val mstatusWMask = (~ZeroExt(
+    (
+      GenMask(XLEN - 1) | // SD is read-only
+        GenMask(XLEN - 2, 23) | // res.
+        GenMask(16, 15) | // XS is read-only
+        GenMask(6) | // res.
+        GenMask(4) | // WPRI
+        GenMask(2) | // WPRI
+        GenMask(0) // WPRI
+    ),
+    XLEN
+  )).asUInt
 
   val mapping = Map(
     // Machine Information Registers
@@ -102,4 +165,39 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
       io.out := t
     }
   }
+}
+
+/* ---------- ---------- 一些辅助的数据结构 ---------- ---------- */
+
+private class MstatusStruct extends Bundle with HasCoreParameter with HasCSRRegFileParameter {
+  val sd = Output(UInt(1.W))
+
+  val pad1 = if (XLEN == 64) Output(UInt(27.W)) else null
+  val sxl  = if (XLEN == 64) Output(UInt(2.W)) else null
+  val uxl  = if (XLEN == 64) Output(UInt(2.W)) else null
+  val pad0 = if (XLEN == 64) Output(UInt(9.W)) else Output(UInt(8.W))
+
+  val tsr  = Output(UInt(1.W))
+  val tw   = Output(UInt(1.W))
+  val tvm  = Output(UInt(1.W))
+  val mxr  = Output(UInt(1.W))
+  val sum  = Output(UInt(1.W))
+  val mprv = Output(UInt(1.W))
+  val xs   = Output(UInt(2.W))
+  val fs   = Output(UInt(2.W))
+  val mpp  = Output(UInt(2.W))
+  val hpp  = Output(UInt(2.W))
+  val spp  = Output(UInt(1.W))
+  val pie  = new Priv
+  val ie   = new Priv
+}
+
+/** @brief
+  *   特权级别，只能有 1 个是 1
+  */
+private class Priv extends Bundle {
+  val m = Output(Bool())
+  val h = Output(Bool())
+  val s = Output(Bool())
+  val u = Output(Bool())
 }

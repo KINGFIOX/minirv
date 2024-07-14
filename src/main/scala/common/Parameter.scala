@@ -11,14 +11,6 @@ trait HasRegFileParameter {
   val NRRegbits = log2Up(NRReg)
 }
 
-/** @brief
-  *   有几个 CSR 寄存器
-  */
-trait HasCSRRegFileParameter {
-  val NCSRbits = 12
-  val NCSRReg  = (1 << NCSRbits)
-}
-
 trait HasECALLParameter {
   val ECALL_ADDRESS = 0x1c090000 /* 其实正常情况下, ecall 应该是调到 a7 指定的系统调用 */
 }
