@@ -71,7 +71,9 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   io.rs1 := io.inst(19, 15)
   io.rs2 := io.inst(24, 20)
-  io.rd  := 0.U /* 一般禁用写入, 只有有 rd 的时候才被激励 */
+
+  // 这里设计是: 不写入就是 写入 x0
+  io.rd := 0.U /* 默认是不写入 */
 
   /* ---------- store ---------- */
   private def store(op_mem_type: MemUOpType.Type) = {
