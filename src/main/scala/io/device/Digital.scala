@@ -8,6 +8,10 @@ import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
 
+trait HasSevenSegParameter {
+  val cycle = 100000
+}
+
 class SevenSeg_Bundle extends Bundle {
   val dot  = Output(Bool())
   val bits = Output(UInt(7.W))
@@ -54,7 +58,7 @@ class DigDecoder extends Module {
 /** @brief
   *   分时复用数码管
   */
-class SevenSegDigital extends Module with HasCoreParameter {
+class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParameter {
   val io = IO(new Bundle {
     val input_en   = Input(UInt(4.W)) // 字节掩码
     val input      = Input(UInt(XLEN.W))
@@ -69,7 +73,7 @@ class SevenSegDigital extends Module with HasCoreParameter {
     }
   }
 
-  val cnt  = Counter(XLEN)
+  val cnt  = Counter(cycle)
   val wrap = cnt.inc()
 
   private val enable_reg = Module(new CycleShiftRegister(8))
