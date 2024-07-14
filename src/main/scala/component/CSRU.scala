@@ -120,8 +120,7 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
         GenMask(4) | // WPRI
         GenMask(2) | // WPRI
         GenMask(0) // WPRI
-    ),
-    XLEN
+    )
   )).asUInt
 
   val mapping = Map(
