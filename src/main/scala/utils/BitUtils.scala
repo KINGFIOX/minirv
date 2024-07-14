@@ -2,6 +2,7 @@ package utils
 
 import chisel3._
 import chisel3.util._
+import common.HasCoreParameter
 
 object MaskData {
 
@@ -15,22 +16,36 @@ object MaskData {
   }
 }
 
-object ZeroExt {
-  def apply(a: UInt, len: Int) = {
+object ZeroExt extends HasCoreParameter {
+  def apply(a: UInt)(implicit XLEN: Int) = {
     val aLen = a.getWidth
-    if (aLen >= len) a(len - 1, 0) else Cat(0.U((len - aLen).W), a)
+    if (aLen >= XLEN) a(XLEN - 1, 0) else Cat(0.U((XLEN - aLen).W), a)
   }
 }
 
 object SignExt {
-  def apply(a: UInt, len: Int) = {
+  def apply(a: UInt)(implicit XLEN: Int): UInt = {
     val aLen    = a.getWidth
     val signBit = a(aLen - 1)
-    if (aLen >= len) a(len - 1, 0) else Cat(Fill(len - aLen, signBit), a)
+    if (aLen >= XLEN) a(XLEN - 1, 0) else Cat(Fill(XLEN - aLen, signBit), a)
   }
+}
+
+/** @brief
+  *   two's complement 补码相加
+  */
+object TcAdd extends {
+  def apply(lhs: UInt, rhs: UInt): UInt = (lhs.asSInt + rhs.asSInt).asUInt
+}
+
+/** @brief
+  *   算术右移
+  */
+object TcSra extends {
+  def apply(lhs: UInt, rhs: UInt): UInt = (lhs.asSInt >> rhs).asUInt
 }
 
 object GenMask {
   def apply(i: Int): UInt         = apply(i, i)
-  def apply(i: Int, j: Int): UInt = ZeroExt(Fill(i - j + 1, true.B) << j, 64)
+  def apply(i: Int, j: Int): UInt = ZeroExt(Fill(i - j + 1, true.B) << j)(64)
 }
