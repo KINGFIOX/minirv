@@ -9,7 +9,7 @@ import common.HasCoreParameter
   *   不过, 这里可能要拓展, 如果是 64 位指令的话
   */
 object MemUOpType extends ChiselEnum {
-  val memu_X, memu_LB, memu_LH, memu_LW, memu_LBU, memu_LHU, memu_SB, memu_SH, memu_SW = Value
+  val mem_X, mem_LB, mem_LH, mem_LW, mem_LBU, mem_LHU, mem_SB, mem_SH, mem_SW = Value
 }
 
 /** @brief
