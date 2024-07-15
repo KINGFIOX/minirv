@@ -17,6 +17,12 @@ trait HasSocParameter {
   val buttonBits = 5
   val ledBits    = 24 // 因为有 24 个  led 灯
 
+  def divCeil(x: Int, y: Int): Int = (x + y - 1) / y
+
+  def switchBytes = divCeil(switchBits, 8)
+  def buttonBytes = divCeil(buttonBits, 8)
+  def ledBytes    = divCeil(ledBits, 8)
+
   val ADDR_DIG       = 0xffff_f000
   val ADDR_LED       = 0xffff_f060
   val ADDR_SWITCH    = 0xffff_f070
@@ -55,10 +61,10 @@ class SoC extends Module with HasSevenSegParameter with HasSocParameter with Has
 
     val addr_space_range = Seq(
       (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
-      (ADDR_DIG, ADDR_DIG + 4), //  4 个 Byte
-      (ADDR_LED, ADDR_LED + 3), //  24 个 led
-      (ADDR_SWITCH, ADDR_SWITCH + 3), // 24 个 switch
-      (ADDR_BUTTON, ADDR_BUTTON + 1) // 5 个 button
+      (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
+      (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
+      (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
+      (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
     )
 
   }
