@@ -66,10 +66,13 @@ class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParam
     val led        = new SevenSeg_Bundle
   })
 
-  private val reg = RegInit(VecInit(Seq.fill(4)(0.U(8.W))))
+  require(io.input_en.getWidth * 8 == io.input.getWidth)
+
+  private val reg      = RegInit(VecInit(Seq.fill(4)(0.U(8.W))))
+  private val inputVec = io.input.asTypeOf(Vec(XLEN / io.input_en.getWidth, UInt(8.W)))
   for (i <- 0 until 4) {
     when(io.input_en(i)) {
-      reg(i) := io.input(8 * i + 7, 8 * i)
+      reg(i) := inputVec(i)
     }
   }
 
