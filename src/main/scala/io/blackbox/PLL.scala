@@ -14,6 +14,14 @@ class PLL extends BlackBox {
   })
 }
 
+object CLKGen {
+  def apply(clk: Clock): Clock = {
+    val clkgen = Module(new PLL)
+    clkgen.io.clk_in1 := clk
+    (clkgen.io.clk_out1.asBool & clkgen.io.locked).asClock
+  }
+}
+
 object DigDecoder extends App {
 
   /** @brief
