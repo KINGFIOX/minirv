@@ -6,6 +6,7 @@ import common.HasCoreParameter
 import io.device.HasSevenSegParameter
 import io.blackbox.PLL
 import io.blackbox.CLKGen
+import core.CPUCore
 
 trait HasSocParameter {
   val addrBits = 14
@@ -14,8 +15,14 @@ trait HasSocParameter {
 
   val switchBits = 24
   val buttonBits = 5
+  val ledBits    = 24 // 因为有 24 个  led 灯
 
-  val ledBits = 24 // 因为有 24 个  led 灯
+  val ADDR_DIG       = 0xffff_f000
+  val ADDR_LED       = 0xffff_f060
+  val ADDR_SWITCH    = 0xffff_f070
+  val ADDR_BUTTON    = 0xffff_f078
+  val ADDR_MEM_BEGIN = 0x0000_0000
+  val ADDR_MEM_END   = 0xffff_f000
 }
 
 class SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
@@ -42,5 +49,17 @@ class SoC extends Module with HasSevenSegParameter with HasSocParameter with Has
 
   private val cpu_clock = CLKGen(this.clock)
 
-  withClock(cpu_clock) {}
+  withClock(cpu_clock) {
+
+    val cpu_core = Module(new CPUCore)
+
+    val addr_space_range = Seq(
+      (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
+      (ADDR_DIG, ADDR_DIG + 4), //  4 个 Byte
+      (ADDR_LED, ADDR_LED + 3), //  24 个 led
+      (ADDR_SWITCH, ADDR_SWITCH + 3), // 24 个 switch
+      (ADDR_BUTTON, ADDR_BUTTON + 1) // 5 个 button
+    )
+
+  }
 }
