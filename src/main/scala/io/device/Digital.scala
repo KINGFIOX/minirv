@@ -13,6 +13,8 @@ trait HasSevenSegParameter {
   val enBits   = 4 // 字节掩码的位宽, 位宽是多少, 那么就有几个字节
   val inBits   = enBits * 8
   val digitNum = 8 // 一共有 8 个数码管
+
+  def digitBytes = 4 // 4 个字节
 }
 
 class SevenSeg_Bundle extends Bundle {
