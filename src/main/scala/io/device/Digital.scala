@@ -72,14 +72,14 @@ class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParam
   require(io.input_en.getWidth * 8 == io.input.getWidth)
 
   private val reg      = RegInit(VecInit(Seq.fill(4)(0.U(8.W))))
-  private val inputVec = io.input.asTypeOf(Vec(XLEN / io.input_en.getWidth, UInt(8.W)))
+  private val inputVec = io.input.asTypeOf(Vec(digitNum, UInt(8.W)))
   for (i <- 0 until 4) {
     when(io.input_en(i)) {
       reg(i) := inputVec(i)
     }
   }
 
-  /* ---------- 两段计数器连接 -> 输出 ---------- */
+  /* ---------- 控制哪一个 digit 使能 ---------- */
 
   val cnt  = Counter(cycle)
   val wrap = cnt.inc()
@@ -90,11 +90,15 @@ class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParam
   private val led_en = enable_reg.io.out
   io.led_enable := ~led_en
 
-  private val reg_bits = reg.asUInt
-  private val decoder  = Module(new DigDecoder)
+  /* ---------- 控制输出的内容 ---------- */
+
+  private val decoder    = Module(new DigDecoder) // hex -> 数码管
+  private val reg_bits_v = reg.asUInt.asTypeOf(Vec(XLEN / io.input_en.getWidth, UInt(4.W)))
+  // decoder 的输入连着一个 mux
   decoder.io.data := Mux1H(Seq.tabulate(8) { i =>
-    led_en(i) -> reg_bits(4 * i + 3, 4 * i)
+    led_en(i) -> reg_bits_v(i)
   })
+
   io.led := decoder.io.led
 }
 
