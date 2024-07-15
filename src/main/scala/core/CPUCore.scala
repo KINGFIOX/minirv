@@ -3,6 +3,7 @@ package core
 import chisel3._
 import chisel3.util._
 import component.IROM
+import component.InstROMBundle
 
 class BusBundle extends Bundle {
   val addr  = Output(UInt(32.W))

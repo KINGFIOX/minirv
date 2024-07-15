@@ -11,8 +11,6 @@ import common.Instructions
 import utils.SignExt
 import common.HasRegFileParameter
 
-import core.NPCOpType
-
 /* ---------- ---------- alu 的两端 mux ---------- ---------- */
 
 object OP1_sel extends ChiselEnum {
