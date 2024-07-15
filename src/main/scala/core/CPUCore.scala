@@ -2,19 +2,32 @@ package core
 
 import chisel3._
 import chisel3.util._
-import component.NPC
-import component.PC
 import component.IROM
 
+class BusBundle extends Bundle {
+  val addr  = Output(UInt(32.W))
+  val rdata = Input(UInt(32.W))
+  val wen   = Output(UInt(4.W))
+  val wdata = Output(UInt(32.W))
+}
+
+/** @brief
+  *   用于与 trace 交互
+  */
+class DebugBundle extends Bundle {
+  val wb_have_inst = Output(Bool())
+  val wb_pc        = Output(UInt(32.W))
+  val wb_ena       = Output(Bool())
+  val wb_reg       = Output(UInt(5.W))
+  val wb_value     = Output(UInt(32.W))
+}
+
 class CPUCore extends Module {
-
-  val npc  = Module(new NPC)
-  val pc   = Module(new PC)
-  val irom = Module(new IROM)
-  pc.io.din    := npc.io.npc
-  irom.io.addr := pc.io.pc
-
-  val inst = irom.io.inst
+  val io = IO(new Bundle {
+    val inst_rom = new InstROMBundle
+    val bus      = new BusBundle
+    val debug    = new DebugBundle
+  })
 
 }
 
