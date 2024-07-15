@@ -4,6 +4,11 @@ import chisel3._
 import chisel3.util._
 
 /** @brief
+  *   一定是常量, 比方说 16进制的位宽
+  */
+trait Consts {}
+
+/** @brief
   *   有几个通用寄存器
   */
 trait HasRegFileParameter {
