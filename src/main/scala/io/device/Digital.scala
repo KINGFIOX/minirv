@@ -9,12 +9,15 @@ import chisel3.util._
 import common.HasCoreParameter
 
 trait HasSevenSegParameter {
-  val cycle = 100000
+  val cycle    = 100000
+  val enBits   = 4 // 字节掩码的位宽, 位宽是多少, 那么就有几个字节
+  val inBits   = enBits * 8
+  val digitNum = 8 // 一共有 8 个数码管
 }
 
 class SevenSeg_Bundle extends Bundle {
   val dot  = Output(Bool())
-  val bits = Output(UInt(7.W))
+  val bits = Output(UInt(7.W)) // 7 段数码管, 硬编码, 就是这样的
 
   def AN = bits(6)
   def BN = bits(5)
@@ -27,29 +30,29 @@ class SevenSeg_Bundle extends Bundle {
 
 class DigDecoder extends Module {
   val io = IO(new Bundle {
-    val data = Input(UInt(4.W))
+    val data = Input(UInt(4.W)) // 一个 16 进制的宽度, 硬编码
     val led  = new SevenSeg_Bundle
   })
 
   io.led.bits := ~MuxCase(
     0.U(7.W),
     Seq(
-      (io.data === 0x0.U) -> "b1111110".U(7.W),
-      (io.data === 0x1.U) -> "b0110000".U(7.W),
-      (io.data === 0x2.U) -> "b1101101".U(7.W),
-      (io.data === 0x3.U) -> "b1111001".U(7.W),
-      (io.data === 0x4.U) -> "b0110011".U(7.W),
-      (io.data === 0x5.U) -> "b1011011".U(7.W),
-      (io.data === 0x6.U) -> "b1011111".U(7.W),
-      (io.data === 0x7.U) -> "b1110000".U(7.W),
-      (io.data === 0x8.U) -> "b1111111".U(7.W),
-      (io.data === 0x9.U) -> "b1111011".U(7.W),
-      (io.data === 0xa.U) -> "b1110111".U(7.W),
-      (io.data === 0xb.U) -> "b0011111".U(7.W),
-      (io.data === 0xc.U) -> "b1001110".U(7.W),
-      (io.data === 0xd.U) -> "b0111101".U(7.W),
-      (io.data === 0xe.U) -> "b1001111".U(7.W),
-      (io.data === 0xf.U) -> "b1000111".U(7.W)
+      (io.data === 0x0.U) -> "b111_1110".U(7.W),
+      (io.data === 0x1.U) -> "b011_0000".U(7.W),
+      (io.data === 0x2.U) -> "b110_1101".U(7.W),
+      (io.data === 0x3.U) -> "b111_1001".U(7.W),
+      (io.data === 0x4.U) -> "b011_0011".U(7.W),
+      (io.data === 0x5.U) -> "b101_1011".U(7.W),
+      (io.data === 0x6.U) -> "b101_1111".U(7.W),
+      (io.data === 0x7.U) -> "b111_0000".U(7.W),
+      (io.data === 0x8.U) -> "b111_1111".U(7.W),
+      (io.data === 0x9.U) -> "b111_1011".U(7.W),
+      (io.data === 0xa.U) -> "b111_0111".U(7.W),
+      (io.data === 0xb.U) -> "b001_1111".U(7.W),
+      (io.data === 0xc.U) -> "b100_1110".U(7.W),
+      (io.data === 0xd.U) -> "b011_1101".U(7.W),
+      (io.data === 0xe.U) -> "b100_1111".U(7.W),
+      (io.data === 0xf.U) -> "b100_0111".U(7.W)
     )
   )
   io.led.dot := true.B
@@ -60,9 +63,9 @@ class DigDecoder extends Module {
   */
 class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParameter {
   val io = IO(new Bundle {
-    val input_en   = Input(UInt(4.W)) // 字节掩码
+    val input_en   = Input(UInt(enBits.W)) // 字节掩码
     val input      = Input(UInt(XLEN.W))
-    val led_enable = Output(UInt(8.W))
+    val led_enable = Output(UInt(digitNum.W))
     val led        = new SevenSeg_Bundle
   })
 
@@ -75,6 +78,8 @@ class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParam
       reg(i) := inputVec(i)
     }
   }
+
+  /* ---------- 两段计数器连接 -> 输出 ---------- */
 
   val cnt  = Counter(cycle)
   val wrap = cnt.inc()
