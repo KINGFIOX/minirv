@@ -12,7 +12,7 @@ class BridgeDev_Bundle extends Bundle with HasCoreParameter {
   val rdata = Input(UInt(XLEN.W))
 }
 
-class Bridge(ranges: Seq[(BigInt, BigInt)]) extends Module {
+class Bridge(ranges: Seq[(BigInt /* addr_begin */, BigInt /* addr_end */ )]) extends Module {
   if (ranges.size > 10) {
     println("Warning: too many sub-devices")
   }
