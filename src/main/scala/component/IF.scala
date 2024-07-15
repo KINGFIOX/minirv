@@ -1,9 +1,14 @@
-package core
+/** @brief
+  *   其实这个东西应该是: NPC + PC
+  */
+
+package component
 
 import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
 import common.HasECALLParameter
+import core.IF_ID_Bundle
 
 object NPCOpType extends ChiselEnum {
   val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
@@ -12,11 +17,6 @@ object NPCOpType extends ChiselEnum {
 class InstROMBundle extends Bundle with HasCoreParameter {
   val addr = Output(UInt(XLEN.W)) // FIXME 对 IROM 传入指令的地址, 但是这个地址可能不是 32bit
   val inst = Input(UInt(XLEN.W)) // IROM 传出指令
-}
-
-class IF_ID_Bundle extends Bundle with HasCoreParameter {
-  val inst = Output(UInt(XLEN.W))
-  val pc4  = Output(UInt(XLEN.W))
 }
 
 /** @brief
