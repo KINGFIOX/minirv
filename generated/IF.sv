@@ -5,11 +5,11 @@ module IF (
     output [31:0] io_irom_addr,
     input  [31:0] io_irom_inst,
     output [31:0] io_out_inst,
-    io_out_pc4,
-    input  [31:0] io_in_offset,
+    io_out_pc_4,
+    input  [31:0] io_in_imm,
     input         io_in_br_flag,
     input  [ 2:0] io_in_op,
-    input  [31:0] io_in_addr
+    input  [31:0] io_in_rs1_v
 );
 
   reg  [31:0] pc;
@@ -23,9 +23,9 @@ module IF (
         {pc},
         {pc},
         {pc},
-        {io_in_addr},
-        {io_in_addr + pc},
-        {io_in_br_flag ? io_in_addr + pc : pc},
+        {io_in_rs1_v + io_in_imm & 32'hFFFFFFFE},
+        {pc + io_in_imm},
+        {io_in_br_flag ? pc + io_in_rs1_v : pc},
         {_pc_T},
         {pc}
       };
@@ -34,6 +34,6 @@ module IF (
   end  // always @(posedge)
   assign io_irom_addr = pc;
   assign io_out_inst  = io_irom_inst;
-  assign io_out_pc4   = _pc_T;
+  assign io_out_pc_4  = _pc_T;
 endmodule
 
