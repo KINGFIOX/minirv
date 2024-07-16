@@ -15,12 +15,3 @@ class DRAM extends BlackBox {
     val spo = Output(UInt(32.W))
   })
 }
-
-/** @brief
-  */
-class IROM extends BlackBox {
-  val io = IO(new Bundle {
-    val a   = Input(UInt(16.W))
-    val spo = Output(UInt(32.W))
-  })
-}

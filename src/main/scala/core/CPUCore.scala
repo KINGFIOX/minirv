@@ -2,9 +2,7 @@ package core
 
 import chisel3._
 import chisel3.util._
-import component.IROM
 
-import _root_.debug.DebugBundle
 import component.IF
 import common.HasCoreParameter
 import component.RegFile
@@ -16,13 +14,11 @@ import component.OP2_sel
 import component.WB_sel
 import component.BRU
 
-class InstROMBundle extends Bundle with HasCoreParameter {
-  val addr = Output(UInt(XLEN.W)) // FIXME 对 IROM 传入指令的地址, 但是这个地址可能不是 32bit
-  val inst = Input(UInt(XLEN.W)) // IROM 传出指令
-}
+import io.blackbox.InstROMBundle
+import io.DebugBundle
 
 /** @brief
-  *   总线, 与 DRAM 交互的
+  *   这个是站在 CPU 视角的, 总线, 与 DRAM 交互的
   */
 class BusBundle extends Bundle with HasCoreParameter {
   val addr  = Output(UInt(XLEN.W))
@@ -35,15 +31,22 @@ class BusBundle extends Bundle with HasCoreParameter {
 
 class CPUCore extends Module with HasCoreParameter {
   val io = IO(new Bundle {
-    val inst_rom = new InstROMBundle
-    val bus      = new BusBundle
-    // val debug    = new DebugBundle
+    val irom  = Flipped(new InstROMBundle)
+    val bus   = new BusBundle
+    val debug = new DebugBundle
   })
+
+  // debug default
+  io.debug.wb_have_inst := true.B
+  io.debug.wb_pc        := 0.U
+  io.debug.wb_ena       := false.B
+  io.debug.wb_reg       := 0.U
+  io.debug.wb_value     := 0.U
 
   /* ---------- IF ---------- */
 
   val if_ = Module(new IF) // Instruction Fetch: NPC + PC
-  io.inst_rom <> if_.io.irom
+  io.irom <> if_.io.irom
 
   private val cur_inst = if_.io.out.inst
   private val pc_4     = if_.io.out.pc_4

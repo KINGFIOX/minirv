@@ -9,6 +9,7 @@ import chisel3.util._
 import common.HasCoreParameter
 import common.HasECALLParameter
 import core.IF_ID_Bundle
+import io.blackbox.InstROMBundle
 
 object NPCOpType extends ChiselEnum {
   val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
@@ -26,7 +27,7 @@ class IFBundle extends Bundle with HasCoreParameter {
 
 class IF extends Module with HasCoreParameter with HasECALLParameter {
   val io = IO(new Bundle {
-    val irom = new core.InstROMBundle
+    val irom = Flipped(new InstROMBundle)
     val out  = new IF_ID_Bundle // 取指令输出, pc4 输出
     val in   = new IFBundle
     // val debug =
