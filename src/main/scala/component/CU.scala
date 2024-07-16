@@ -127,20 +127,48 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     load_inst(MemUOpType.mem_LW)
   }
 
+  /* ---------- R-type ---------- */
+  private def R_inst(op: ALUOpType.Type) = {
+    io.ctrl.alu_op  := op
+    io.ctrl.op1_sel := OP1_sel.op1sel_RS1
+    io.ctrl.op2_sel := OP2_sel.op2sel_RS2
+    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+  }
+  when(io.inst === Instructions.ADD) {
+    R_inst(ALUOpType.alu_ADD)
+  }
+  when(io.inst === Instructions.SUB) {
+    R_inst(ALUOpType.alu_SUB)
+  }
+  when(io.inst === Instructions.AND) {
+    R_inst(ALUOpType.alu_AND)
+  }
+  when(io.inst === Instructions.OR) {
+    R_inst(ALUOpType.alu_OR)
+  }
+  when(io.inst === Instructions.XOR) {
+    R_inst(ALUOpType.alu_XOR)
+  }
+  when(io.inst === Instructions.SLL) {
+    R_inst(ALUOpType.alu_SLL)
+  }
+  when(io.inst === Instructions.SRL) {
+    R_inst(ALUOpType.alu_SRL)
+  }
+  when(io.inst === Instructions.SRA) {
+    R_inst(ALUOpType.alu_SRA)
+  }
+  when(io.inst === Instructions.SLT) {
+    R_inst(ALUOpType.alu_SLT)
+  }
+  when(io.inst === Instructions.SLTU) {
+    R_inst(ALUOpType.alu_SLTU)
+  }
+
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
   //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
   //   Array(
-  //     // store
-  //     Instructions.SW -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_SW, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SH -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_SH, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SB -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_SB, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     // load
-  //     Instructions.LB  -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_LB, CSRUOpType.csru_X, WB_sel.wbsel_MEM, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.LBU -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_LBU, CSRUOpType.csru_X, WB_sel.wbsel_MEM, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.LH  -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_LH, CSRUOpType.csru_X, WB_sel.wbsel_MEM, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.LHU -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_LHU, CSRUOpType.csru_X, WB_sel.wbsel_MEM, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.LW  -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_LW, CSRUOpType.csru_X, WB_sel.wbsel_MEM, NPCOpType.npc_4, BRUOpType.bru_X),
   //     // R-type
   //     Instructions.ADD  -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_RS2, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
   //     Instructions.SUB  -> List(ALUOpType.alu_SUB, OP1_sel.op1sel_RS1, OP2_sel.op2sel_RS2, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
