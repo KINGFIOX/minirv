@@ -13,13 +13,9 @@ import upickle.default
   *   ALU 不用管 jal 和 br 的操作, 这个是 NPC 和 BRU 的事情
   * @br
   *   pc += sext(offset)
-  * @jal
-  *   pc += sext(offset)
-  * @jalr
-  *   pc = ra1 + sext(offset) & ~1
   */
 object ALUOpType extends ChiselEnum {
-  val alu_X, alu_ADD, alu_SUB, alu_AND, alu_OR, alu_XOR, alu_SLL, alu_SRL, alu_SRA, alu_SLT, alu_SLTU, alu_JALR = Value
+  val alu_X, alu_ADD, alu_SUB, alu_AND, alu_OR, alu_XOR, alu_SLL, alu_SRL, alu_SRA, alu_SLT, alu_SLTU = Value
 }
 
 class ALU extends Module with HasCoreParameter {
@@ -66,11 +62,6 @@ class ALU extends Module with HasCoreParameter {
     }
     is(ALUOpType.alu_SLTU) {
       io.out := io.op1_v < io.op2_v
-    }
-    is(ALUOpType.alu_JALR) {
-      // rs1
-      // rs2 = sext(offset)
-      io.out := (io.op1_v + io.op2_v) & ~1.U(XLEN.W)
     }
   }
 }

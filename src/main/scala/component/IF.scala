@@ -18,10 +18,10 @@ object NPCOpType extends ChiselEnum {
   *   IF 阶段的输入信号
   */
 class IFBundle extends Bundle with HasCoreParameter {
-  val offset  = Input(UInt(XLEN.W)) // br/jal 是 offset
+  val imm     = Input(UInt(XLEN.W)) // br/jal 是 offset
   val br_flag = Input(Bool())
   val op      = Input(NPCOpType())
-  val addr    = Input(UInt(XLEN.W)) // jalr 就是绝对地址
+  val rs1_v   = Input(UInt(XLEN.W)) // jalr 就是绝对地址
 }
 
 class IF extends Module with HasCoreParameter with HasECALLParameter {
@@ -53,14 +53,14 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     }
     is(NPCOpType.npc_BR) {
       when(io.in.br_flag) {
-        pc := io.in.addr + pc
+        pc := pc + io.in.rs1_v
       }
     }
     is(NPCOpType.npc_JAL) {
-      pc := io.in.addr + pc
+      pc := pc + io.in.imm
     }
     is(NPCOpType.npc_JALR) {
-      pc := io.in.addr
+      pc := (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W)
     }
     // is(NPCOpType.npc_ECALL) {
     //   pc := ECALL_ADDRESS.U

@@ -235,19 +235,50 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     Branch_inst(BRUOpType.bru_BLTU)
   }
 
-  /* ---------- Branch ---------- */
+  /* ---------- JALR ---------- */
+
+  when(io.inst === Instructions.JALR) {
+    io.imm         := SignExt(io.inst(31, 20))
+    io.ctrl.npc_op := NPCOpType.npc_JALR
+    io.ctrl.wb_sel := WB_sel.wbsel_PC4
+    io.rf.rd_i     := io.inst(11, 7)
+  }
+
+  /* ---------- JAL ---------- */
+
+  when(io.inst === Instructions.JAL) {
+    io.imm         := SignExt(io.inst(31) /* 20 */ ## io.inst(19, 12) /* 19:12 */ ## io.inst(20) /* 11 */ ## io.inst(30, 21) /* 10:1 */ ## 0.U(1.W) /* 0 */ )
+    io.ctrl.npc_op := NPCOpType.npc_JAL
+    io.ctrl.wb_sel := WB_sel.wbsel_PC4
+    io.rf.rd_i     := io.inst(11, 7)
+  }
+
+  /* ---------- LUI ---------- */
+
+  when(io.inst === Instructions.LUI) {
+    io.ctrl.alu_op  := ALUOpType.alu_ADD
+    io.ctrl.op1_sel := OP1_sel.op1sel_ZERO /* 就是啥也不干 */
+    io.ctrl.op2_sel := OP2_sel.op2sel_IMM
+    io.imm          := io.inst(31, 12) ## 0.U(12.W) /* 当然这个移位步骤可以移到 ALU(EXE-stage) */
+    io.rf.rd_i      := io.inst(11, 7)
+    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+  }
+
+  /* ---------- AUIPC ---------- */
+
+  when(io.inst === Instructions.AUIPC) {
+    io.ctrl.alu_op  := ALUOpType.alu_ADD
+    io.ctrl.op1_sel := OP1_sel.op1sel_PC
+    io.ctrl.op2_sel := OP2_sel.op2sel_IMM
+    io.imm          := io.inst(31, 12) ## 0.U(12.W)
+    io.rf.rd_i      := io.inst(11, 7)
+    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+  }
 
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
   //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
   //   Array(
-  //     // jalr   // pc = (rs1 + sext(offset)) & ~1
-  //     Instructions.JALR -> List(ALUOpType.alu_X, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_PC4, NPCOpType.npc_JALR, BRUOpType.bru_X),
-  //     // jal
-  //     Instructions.JAL -> List(ALUOpType.alu_X, OP1_sel.op1sel_PC, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_PC4, NPCOpType.npc_JAL, BRUOpType.bru_X), // 写回 pc4
-  //     // U-type
-  //     Instructions.LUI   -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X), // 立即数 + 0
-  //     Instructions.AUIPC -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_PC, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X), // 立即数 + PC
   //     // CSR
   //     Instructions.CSRRW  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRW, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),
   //     Instructions.CSRRWI -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRW, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),

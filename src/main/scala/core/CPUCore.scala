@@ -74,16 +74,20 @@ class CPUCore extends Module with HasCoreParameter {
     )
   )
 
-  // 应该还会有 csr, branch 之类的
+  // 应该还会有 csr 之类的
+
+  // beq rs1, rs2, offset => if(rs1==rs2) pc=pc+offset
   private val bru_ = Module(new BRU)
   bru_.io.in.rs1_v  := regfile_.read(cu_.io.rf.rs1_i)
   bru_.io.in.rs2_v  := regfile_.read(cu_.io.rf.rs2_i)
   bru_.io.in.bru_op := cu_.io.ctrl.bru_op
-  if_.io.in.br_flag := bru_.io.br_flag // 是否发生跳转, 只有 branch 才有
+  if_.io.in.br_flag := bru_.io.br_flag // 是否跳转
 
-  if_.io.in.op     := cu_.io.ctrl.npc_op // default: npc_4
-  if_.io.in.offset := cu_.io.imm // jal 和 branch 会改
-  if_.io.in.addr   := regfile_.read(cu_.io.rf.rs1_i) // rs1
+  // jalr rd, offset(rs1) => t=pc+4; pc=(rs1_v+offset)&~1; rd_v=t
+  // jal rd, offset => rd=pc+4; pc=pc+offset
+  if_.io.in.op    := cu_.io.ctrl.npc_op // default: npc_4
+  if_.io.in.imm   := cu_.io.imm //
+  if_.io.in.rs1_v := regfile_.read(cu_.io.rf.rs1_i) // 只有 jalr 会用
 
   /* ---------- MEM ---------- */
 
@@ -103,7 +107,9 @@ class CPUCore extends Module with HasCoreParameter {
     is(WB_sel.wbsel_MEM) {
       regfile_.write(cu_.io.rf.rd_i, mem_.io.out.rdata)
     }
-    is(WB_sel.wbsel_PC4) {}
+    is(WB_sel.wbsel_PC4) {
+      regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
+    }
   }
 
   // val rd = cu_.io.rf.rd_i
