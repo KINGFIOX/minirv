@@ -1,11 +1,11 @@
 import chisel3._
 import chisel3.util._
-import io.blackbox.DistributedSinglePortRAM
-import io.blackbox.DistributedSinglePortROM
+import io.vivado.blackbox.DistributedSinglePortRAM
+import io.vivado.blackbox.DistributedSinglePortROM
 import common.HasCoreParameter
-import io.device.HasSevenSegParameter
-import io.blackbox.PLL
-import io.blackbox.CLKGen
+import io.vivado.device.HasSevenSegParameter
+import io.vivado.blackbox.PLL
+import io.vivado.blackbox.CLKGen
 import core.CPUCore
 
 trait HasSocParameter {
