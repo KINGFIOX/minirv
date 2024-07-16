@@ -3,36 +3,130 @@ module CU (
     input         clock,
     reset,
     input  [31:0] io_inst,
-    output [ 3:0] io_alu_op,
-    output [ 1:0] io_op1_sel,
-    io_op2_sel,
-    output [ 3:0] io_op_mem,
-    output [ 1:0] io_csr_op,
-    output [ 2:0] io_wb_sel,
-    io_npc_op,
-    io_bru_op,
-    output [31:0] io_imm
+    output [ 3:0] io_ctrl_alu_op,
+    output [ 1:0] io_ctrl_op1_sel,
+    io_ctrl_op2_sel,
+    output [ 3:0] io_ctrl_op_mem,
+    output [ 1:0] io_ctrl_csr_op,
+    output [ 2:0] io_ctrl_wb_sel,
+    io_ctrl_npc_op,
+    io_ctrl_bru_op,
+    output [31:0] io_imm,
+    output [ 4:0] io_rf_rs1_i,
+    io_rf_rs2_i,
+    io_rf_rd_i
 );
 
   wire [9:0] _GEN = {io_inst[14:12], io_inst[6:0]};
-  wire       _GEN_0 = _GEN == 10'h123;
-  wire       _GEN_1 = _GEN == 10'hA3;
-  wire       _GEN_2 = _GEN == 10'h23;
-  wire       _GEN_3 = _GEN_2 | _GEN_1 | _GEN_0;
-  wire [1:0] io_op2_sel_0 = {1'h0, _GEN_3};
-  assign io_alu_op = {3'h0, _GEN_3};
-  assign io_op1_sel = io_op2_sel_0;
-  assign io_op2_sel = io_op2_sel_0;
-  assign io_op_mem = _GEN_2 ? 4'h6 : _GEN_1 ? 4'h7 : {_GEN_0, 3'h0};
-  assign io_csr_op = 2'h0;
-  assign io_wb_sel = 3'h0;
-  assign io_npc_op = 3'h1;
-  assign io_bru_op = 3'h0;
+  wire _GEN_0 = _GEN == 10'h123;
+  wire _GEN_1 = _GEN == 10'hA3;
+  wire _GEN_2 = _GEN == 10'h23;
+  wire _GEN_3 = _GEN == 10'h3;
+  wire _GEN_4 = _GEN == 10'h203;
+  wire _GEN_5 = _GEN == 10'h83;
+  wire _GEN_6 = _GEN == 10'h283;
+  wire _GEN_7 = _GEN == 10'h103;
+  wire _GEN_8 = _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 | _GEN_2 | _GEN_1 | _GEN_0;
+  wire [16:0] _GEN_9 = {io_inst[31:25], io_inst[14:12], io_inst[6:0]};
+  wire _GEN_10 = _GEN_9 == 17'h33;
+  wire _GEN_11 = _GEN_10 | _GEN_8;
+  wire _GEN_12 = _GEN_9 == 17'h8033;
+  wire _GEN_13 = _GEN_9 == 17'h3B3;
+  wire _GEN_14 = _GEN_9 == 17'h333;
+  wire _GEN_15 = _GEN_9 == 17'h233;
+  wire _GEN_16 = _GEN_9 == 17'hB3;
+  wire _GEN_17 = _GEN_9 == 17'h2B3;
+  wire _GEN_18 = _GEN_9 == 17'h82B3;
+  wire _GEN_19 = _GEN_9 == 17'h133;
+  wire _GEN_20 = _GEN_9 == 17'h1B3;
+  wire        _GEN_21 =
+    _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15 | _GEN_14 | _GEN_13
+    | _GEN_12 | _GEN_10;
+  assign io_ctrl_alu_op =
+    _GEN_20
+      ? 4'hA
+      : _GEN_19
+          ? 4'h9
+          : _GEN_18
+              ? 4'h8
+              : _GEN_17
+                  ? 4'h7
+                  : _GEN_16
+                      ? 4'h6
+                      : _GEN_15
+                          ? 4'h5
+                          : _GEN_14
+                              ? 4'h4
+                              : _GEN_13 ? 4'h3 : _GEN_12 ? 4'h2 : {3'h0, _GEN_11};
+  assign io_ctrl_op1_sel = {
+    1'h0,
+    _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15 | _GEN_14 | _GEN_13
+       | _GEN_12 | _GEN_11
+  };
+  assign io_ctrl_op2_sel = _GEN_21 ? 2'h2 : {1'h0, _GEN_8};
+  assign io_ctrl_op_mem =
+    _GEN_7
+      ? 4'h3
+      : _GEN_6
+          ? 4'h5
+          : _GEN_5
+              ? 4'h2
+              : _GEN_4
+                  ? 4'h4
+                  : _GEN_3 ? 4'h1 : _GEN_2 ? 4'h6 : _GEN_1 ? 4'h7 : {_GEN_0, 3'h0};
+  assign io_ctrl_csr_op = 2'h0;
+  assign io_ctrl_wb_sel = _GEN_21 ? 3'h1 : _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 ? 3'h3 : 3'h0;
+  assign io_ctrl_npc_op = 3'h1;
+  assign io_ctrl_bru_op = 3'h0;
   assign io_imm =
-    _GEN_2
-      ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
-      : _GEN_1
-          ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
-          : _GEN_0 ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]} : 32'h0;
+    _GEN_7
+      ? {{20{io_inst[31]}}, io_inst[31:20]}
+      : _GEN_6
+          ? {{20{io_inst[31]}}, io_inst[31:20]}
+          : _GEN_5
+              ? {{20{io_inst[31]}}, io_inst[31:20]}
+              : _GEN_4
+                  ? {{20{io_inst[31]}}, io_inst[31:20]}
+                  : _GEN_3
+                      ? {{20{io_inst[31]}}, io_inst[31:20]}
+                      : _GEN_2
+                          ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
+                          : _GEN_1
+                              ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
+                              : _GEN_0
+                                  ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
+                                  : 32'h0;
+  assign io_rf_rs1_i = io_inst[19:15];
+  assign io_rf_rs2_i = io_inst[24:20];
+  assign io_rf_rd_i =
+    _GEN_20
+      ? io_inst[11:7]
+      : _GEN_19
+          ? io_inst[11:7]
+          : _GEN_18
+              ? io_inst[11:7]
+              : _GEN_17
+                  ? io_inst[11:7]
+                  : _GEN_16
+                      ? io_inst[11:7]
+                      : _GEN_15
+                          ? io_inst[11:7]
+                          : _GEN_14
+                              ? io_inst[11:7]
+                              : _GEN_13
+                                  ? io_inst[11:7]
+                                  : _GEN_12
+                                      ? io_inst[11:7]
+                                      : _GEN_10
+                                          ? io_inst[11:7]
+                                          : _GEN_7
+                                              ? io_inst[11:7]
+                                              : _GEN_6
+                                                  ? io_inst[11:7]
+                                                  : _GEN_5
+                                                      ? io_inst[11:7]
+                                                      : _GEN_4
+                                                          ? io_inst[11:7]
+                                                          : _GEN_3 ? io_inst[11:7] : 5'h0;
 endmodule
 
