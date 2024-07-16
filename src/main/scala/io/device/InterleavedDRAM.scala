@@ -26,7 +26,7 @@ class DRAM_Bundle(val addrBits: Int, val enBits: Int, val dataBits: Int) extends
 }
 
 /** @brief
-  *   不同的 dram 存储一个字的不同的部分, 第 0/1/2/3 字节
+  *   不同的 dram 存储一个字的不同的部分, 第 0/1/2/3 字节。 注意: 我们的 InterleavedDram 的 addr 是 word 寻址的
   *
   * @param self_B
   */

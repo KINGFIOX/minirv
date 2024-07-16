@@ -6,16 +6,8 @@ import component.IROM
 import component.InstROMBundle
 
 import _root_.debug.DebugBundle
-
-/** @brief
-  *   总线, 与 DRAM 交互的
-  */
-class BusBundle extends Bundle {
-  val addr  = Output(UInt(32.W))
-  val rdata = Input(UInt(32.W))
-  val wen   = Output(UInt(4.W))
-  val wdata = Output(UInt(32.W))
-}
+import component.IF
+import component.BusBundle
 
 class CPUCore extends Module {
   val io = IO(new Bundle {
@@ -23,6 +15,9 @@ class CPUCore extends Module {
     val bus      = new BusBundle
     // val debug    = new DebugBundle
   })
+
+  val if_ = Module(new IF)
+  io.inst_rom := if_.io.irom
 
 }
 
