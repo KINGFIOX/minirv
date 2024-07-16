@@ -304,3 +304,23 @@ object CU extends App {
     )
   )
 }
+
+object CUTest extends App {
+  val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
+    new Module {
+      val io = IO(new Bundle {
+        val inst    = Input(UInt(32.W))
+        val is_addi = Output(Bool())
+      })
+      io.is_addi := false.B
+      when(io.inst === Instructions.ADDI) {
+        io.is_addi := true.B
+      }
+    },
+    args = Array("--target-dir", "generated"),
+    firtoolOpts = Array(
+      "--strip-debug-info",
+      "-disable-all-randomization"
+    )
+  )
+}
