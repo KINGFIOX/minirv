@@ -45,15 +45,15 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   // 设置下一个时钟上升沿, pc
 
   switch(io.in.op) {
-    is(NPCOpType.npc_X) {
-      pc := pc
-    }
+    is(NPCOpType.npc_X) { /* 啥也不干 */ }
     is(NPCOpType.npc_4) {
       pc := pc + 4.U
     }
     is(NPCOpType.npc_BR) {
       when(io.in.br_flag) {
         pc := pc + io.in.rs1_v
+      }.otherwise {
+        pc := pc + 4.U
       }
     }
     is(NPCOpType.npc_JAL) {
