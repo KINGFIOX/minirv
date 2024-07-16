@@ -514,8 +514,8 @@ endmodule
 module CPUCore(
   input         clock,
                 reset,
-  output [31:0] io_inst_rom_addr,
-  input  [31:0] io_inst_rom_inst,
+  output [31:0] io_irom_addr,
+  input  [31:0] io_irom_inst,
   output [31:0] io_bus_addr,
   input  [31:0] io_bus_rdata,
   output [3:0]  io_bus_wen,
@@ -550,8 +550,8 @@ module CPUCore(
   IF if_ (
     .clock         (clock),
     .reset         (reset),
-    .io_irom_addr  (io_inst_rom_addr),
-    .io_irom_inst  (io_inst_rom_inst),
+    .io_irom_addr  (io_irom_addr),
+    .io_irom_inst  (io_irom_inst),
     .io_out_inst   (_if__io_out_inst),
     .io_out_pc_4   (_if__io_out_pc_4),
     .io_in_imm     (_cu__io_imm),
@@ -623,5 +623,53 @@ module CPUCore(
     .io_bus_wdata (io_bus_wdata),
     .io_out_rdata (_mem__io_out_rdata)
   );
+endmodule
+
+// external module IROM
+
+// external module DRAM
+
+module miniRV_SoC(
+  input         fpga_clk,
+                fpga_rst,
+  output        debug_wb_have_inst,
+  output [31:0] debug_wb_pc,
+  output        debug_wb_ena,
+  output [4:0]  debug_wb_reg,
+  output [31:0] debug_wb_value
+);
+
+  wire [31:0] _dram_spo;
+  wire [31:0] _irom_spo;
+  wire [31:0] _cpu_core_io_irom_addr;
+  wire [31:0] _cpu_core_io_bus_addr;
+  wire [3:0]  _cpu_core_io_bus_wen;
+  wire [31:0] _cpu_core_io_bus_wdata;
+  CPUCore cpu_core (
+    .clock        (fpga_clk),
+    .reset        (fpga_rst),
+    .io_irom_addr (_cpu_core_io_irom_addr),
+    .io_irom_inst (_irom_spo),
+    .io_bus_addr  (_cpu_core_io_bus_addr),
+    .io_bus_rdata (_dram_spo),
+    .io_bus_wen   (_cpu_core_io_bus_wen),
+    .io_bus_wdata (_cpu_core_io_bus_wdata)
+  );
+  IROM irom (
+    .a   ({2'h0, _cpu_core_io_irom_addr[15:2]}),
+    .spo (_irom_spo)
+  );
+  DRAM dram (
+    .clk (fpga_clk),
+    .a   ({2'h0, _cpu_core_io_bus_addr[15:2]}),
+    .we  (_cpu_core_io_bus_wen),
+    .d   (_cpu_core_io_bus_wdata),
+    .spo (_dram_spo)
+  );
+  assign debug_wb_have_inst = 1'h1;
+  assign debug_wb_pc = 32'h0;
+  assign debug_wb_ena = 1'h0;
+  assign debug_wb_reg = 5'h0;
+  assign debug_wb_value = 32'h0;
 endmodule
 
