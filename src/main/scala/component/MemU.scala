@@ -33,6 +33,9 @@ class MEM_WB_Bundle extends Bundle with HasCoreParameter {
   val rdata = Output(UInt(XLEN.W))
 }
 
+/** @brief
+  *   这里访存包含 MMIO, 其中我要求, 访问外设要 lbu, lb, sb
+  */
 class MemU extends Module with HasCoreParameter {
   val io = IO(new Bundle {
     val in  = new EXE_MEM_Bundle
