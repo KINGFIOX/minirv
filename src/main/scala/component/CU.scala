@@ -58,7 +58,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   io.npc_op := NPCOpType.npc_4
 
   /* ---------- default ---------- */
-  // FIXME 测试: 1. reset 的时候才会 default
   // 2. 还是每个周期都会有 default
   io.alu_op  := ALUOpType.alu_X
   io.op1_sel := OP1_sel.op1sel_ZERO
@@ -76,7 +75,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   io.rd := 0.U /* 默认是不写入 */
 
   /* ---------- store ---------- */
-  private def store(op_mem_type: MemUOpType.Type) = {
+  private def store_inst(op_mem_type: MemUOpType.Type) = {
     io.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
     io.op1_sel := OP1_sel.op1sel_RS1
     io.op2_sel := OP2_sel.op2sel_SEXT
@@ -84,13 +83,13 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm     := SignExt(io.inst(31, 25) ## io.inst(11, 7))
   }
   when(io.inst === Instructions.SW) {
-    store(MemUOpType.mem_SW)
+    store_inst(MemUOpType.mem_SW)
   }
   when(io.inst === Instructions.SH) {
-    store(MemUOpType.mem_SH)
+    store_inst(MemUOpType.mem_SH)
   }
   when(io.inst === Instructions.SB) {
-    store(MemUOpType.mem_SB)
+    store_inst(MemUOpType.mem_SB)
   }
 
   /* ---------- load ---------- */

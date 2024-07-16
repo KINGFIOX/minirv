@@ -3,7 +3,7 @@ package io.device
 import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
-import component.BusBundle
+import core.BusBundle
 
 class BridgeDev_Bundle extends Bundle with HasCoreParameter {
   val addr  = Output(UInt(XLEN.W))

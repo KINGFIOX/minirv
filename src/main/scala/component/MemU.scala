@@ -6,6 +6,7 @@ import common.HasDRAMParameter
 import common.HasCoreParameter
 import utils.SignExt
 import utils.ZeroExt
+import core.BusBundle
 
 /** @brief
   *   不过, 这里可能要拓展, 如果是 64 位指令的话
@@ -23,16 +24,6 @@ class EXE_MEM_Bundle extends Bundle with HasCoreParameter {
   val op    = Input(MemUOpType())
   val addr  = Input(UInt(XLEN.W))
   val wdata = Input(UInt(XLEN.W))
-}
-
-/** @brief
-  *   总线, 与 DRAM 交互的
-  */
-class BusBundle extends Bundle with HasCoreParameter {
-  val addr  = Output(UInt(XLEN.W))
-  val rdata = Input(UInt(XLEN.W))
-  val wen   = Output(UInt(dataBytes.W))
-  val wdata = Output(UInt(XLEN.W))
 }
 
 /** @brief

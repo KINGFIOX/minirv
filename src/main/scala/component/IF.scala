@@ -14,11 +14,6 @@ object NPCOpType extends ChiselEnum {
   val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
 }
 
-class InstROMBundle extends Bundle with HasCoreParameter {
-  val addr = Output(UInt(XLEN.W)) // FIXME 对 IROM 传入指令的地址, 但是这个地址可能不是 32bit
-  val inst = Input(UInt(XLEN.W)) // IROM 传出指令
-}
-
 /** @brief
   *   IF 阶段的输入信号
   */
@@ -31,7 +26,7 @@ class IFBundle extends Bundle with HasCoreParameter {
 
 class IF extends Module with HasCoreParameter with HasECALLParameter {
   val io = IO(new Bundle {
-    val irom = new InstROMBundle
+    val irom = new core.InstROMBundle
     val out  = new IF_ID_Bundle // 取指令输出, pc4 输出
     val in   = new IFBundle
     // val debug =
