@@ -42,28 +42,66 @@ module CU (
   wire        _GEN_21 =
     _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15 | _GEN_14 | _GEN_13
     | _GEN_12 | _GEN_10;
+  wire _GEN_22 = _GEN == 10'h13;
+  wire _GEN_23 = _GEN == 10'h393;
+  wire _GEN_24 = _GEN == 10'h313;
+  wire _GEN_25 = _GEN == 10'h213;
+  wire [15:0] _GEN_26 = {io_inst[31:26], io_inst[14:12], io_inst[6:0]};
+  wire _GEN_27 = _GEN_26 == 16'h93;
+  wire _GEN_28 = _GEN_26 == 16'h293;
+  wire _GEN_29 = _GEN_26 == 16'h4293;
+  wire _GEN_30 = _GEN == 10'h113;
+  wire _GEN_31 = _GEN == 10'h193;
   assign io_ctrl_alu_op =
-    _GEN_20
+    _GEN_31
       ? 4'hA
-      : _GEN_19
+      : _GEN_30
           ? 4'h9
-          : _GEN_18
+          : _GEN_29
               ? 4'h8
-              : _GEN_17
+              : _GEN_28
                   ? 4'h7
-                  : _GEN_16
+                  : _GEN_27
                       ? 4'h6
-                      : _GEN_15
+                      : _GEN_25
                           ? 4'h5
-                          : _GEN_14
+                          : _GEN_24
                               ? 4'h4
-                              : _GEN_13 ? 4'h3 : _GEN_12 ? 4'h2 : {3'h0, _GEN_11};
+                              : _GEN_23
+                                  ? 4'h3
+                                  : _GEN_22
+                                      ? 4'h1
+                                      : _GEN_20
+                                          ? 4'hA
+                                          : _GEN_19
+                                              ? 4'h9
+                                              : _GEN_18
+                                                  ? 4'h8
+                                                  : _GEN_17
+                                                      ? 4'h7
+                                                      : _GEN_16
+                                                          ? 4'h6
+                                                          : _GEN_15
+                                                              ? 4'h5
+                                                              : _GEN_14
+                                                                  ? 4'h4
+                                                                  : _GEN_13
+                                                                      ? 4'h3
+                                                                      : _GEN_12
+                                                                          ? 4'h2
+                                                                          : {3'h0,
+                                                                             _GEN_11};
   assign io_ctrl_op1_sel = {
     1'h0,
-    _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15 | _GEN_14 | _GEN_13
-       | _GEN_12 | _GEN_11
+    _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23
+       | _GEN_22 | _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15 | _GEN_14
+       | _GEN_13 | _GEN_12 | _GEN_11
   };
-  assign io_ctrl_op2_sel = _GEN_21 ? 2'h2 : {1'h0, _GEN_8};
+  assign io_ctrl_op2_sel =
+    _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23
+    | _GEN_22
+      ? 2'h1
+      : _GEN_21 ? 2'h2 : {1'h0, _GEN_8};
   assign io_ctrl_op_mem =
     _GEN_7
       ? 4'h3
@@ -75,58 +113,108 @@ module CU (
                   ? 4'h4
                   : _GEN_3 ? 4'h1 : _GEN_2 ? 4'h6 : _GEN_1 ? 4'h7 : {_GEN_0, 3'h0};
   assign io_ctrl_csr_op = 2'h0;
-  assign io_ctrl_wb_sel = _GEN_21 ? 3'h1 : _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 ? 3'h3 : 3'h0;
+  assign io_ctrl_wb_sel =
+    _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23
+    | _GEN_22 | _GEN_21
+      ? 3'h1
+      : _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 ? 3'h3 : 3'h0;
   assign io_ctrl_npc_op = 3'h1;
   assign io_ctrl_bru_op = 3'h0;
   assign io_imm =
-    _GEN_7
-      ? {{20{io_inst[31]}}, io_inst[31:20]}
-      : _GEN_6
-          ? {{20{io_inst[31]}}, io_inst[31:20]}
-          : _GEN_5
-              ? {{20{io_inst[31]}}, io_inst[31:20]}
-              : _GEN_4
-                  ? {{20{io_inst[31]}}, io_inst[31:20]}
-                  : _GEN_3
-                      ? {{20{io_inst[31]}}, io_inst[31:20]}
-                      : _GEN_2
-                          ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
-                          : _GEN_1
-                              ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
-                              : _GEN_0
-                                  ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
-                                  : 32'h0;
+    _GEN_31
+      ? {20'h0, io_inst[31:20]}
+      : _GEN_30
+          ? {20'h0, io_inst[31:20]}
+          : _GEN_29
+              ? {20'h0, io_inst[31:20]}
+              : _GEN_28
+                  ? {20'h0, io_inst[31:20]}
+                  : _GEN_27
+                      ? {20'h0, io_inst[31:20]}
+                      : _GEN_25
+                          ? {20'h0, io_inst[31:20]}
+                          : _GEN_24
+                              ? {20'h0, io_inst[31:20]}
+                              : _GEN_23
+                                  ? {20'h0, io_inst[31:20]}
+                                  : _GEN_22
+                                      ? {20'h0, io_inst[31:20]}
+                                      : _GEN_7
+                                          ? {{20{io_inst[31]}}, io_inst[31:20]}
+                                          : _GEN_6
+                                              ? {{20{io_inst[31]}}, io_inst[31:20]}
+                                              : _GEN_5
+                                                  ? {{20{io_inst[31]}}, io_inst[31:20]}
+                                                  : _GEN_4
+                                                      ? {{20{io_inst[31]}},
+                                                         io_inst[31:20]}
+                                                      : _GEN_3
+                                                          ? {{20{io_inst[31]}},
+                                                             io_inst[31:20]}
+                                                          : _GEN_2
+                                                              ? {{20{io_inst[31]}},
+                                                                 io_inst[31:25],
+                                                                 io_inst[11:7]}
+                                                              : _GEN_1
+                                                                  ? {{20{io_inst[31]}},
+                                                                     io_inst[31:25],
+                                                                     io_inst[11:7]}
+                                                                  : _GEN_0
+                                                                      ? {{20{io_inst[31]}},
+                                                                         io_inst[31:25],
+                                                                         io_inst[11:7]}
+                                                                      : 32'h0;
   assign io_rf_rs1_i = io_inst[19:15];
   assign io_rf_rs2_i = io_inst[24:20];
   assign io_rf_rd_i =
-    _GEN_20
+    _GEN_31
       ? io_inst[11:7]
-      : _GEN_19
+      : _GEN_30
           ? io_inst[11:7]
-          : _GEN_18
+          : _GEN_29
               ? io_inst[11:7]
-              : _GEN_17
+              : _GEN_28
                   ? io_inst[11:7]
-                  : _GEN_16
+                  : _GEN_27
                       ? io_inst[11:7]
-                      : _GEN_15
+                      : _GEN_25
                           ? io_inst[11:7]
-                          : _GEN_14
+                          : _GEN_24
                               ? io_inst[11:7]
-                              : _GEN_13
+                              : _GEN_23
                                   ? io_inst[11:7]
-                                  : _GEN_12
+                                  : _GEN_22
                                       ? io_inst[11:7]
-                                      : _GEN_10
+                                      : _GEN_20
                                           ? io_inst[11:7]
-                                          : _GEN_7
+                                          : _GEN_19
                                               ? io_inst[11:7]
-                                              : _GEN_6
+                                              : _GEN_18
                                                   ? io_inst[11:7]
-                                                  : _GEN_5
+                                                  : _GEN_17
                                                       ? io_inst[11:7]
-                                                      : _GEN_4
+                                                      : _GEN_16
                                                           ? io_inst[11:7]
-                                                          : _GEN_3 ? io_inst[11:7] : 5'h0;
+                                                          : _GEN_15
+                                                              ? io_inst[11:7]
+                                                              : _GEN_14
+                                                                  ? io_inst[11:7]
+                                                                  : _GEN_13
+                                                                      ? io_inst[11:7]
+                                                                      : _GEN_12
+                                                                          ? io_inst[11:7]
+                                                                          : _GEN_10
+                                                                              ? io_inst[11:7]
+                                                                              : _GEN_7
+                                                                                  ? io_inst[11:7]
+                                                                                  : _GEN_6
+                                                                                      ? io_inst[11:7]
+                                                                                      : _GEN_5
+                                                                                          ? io_inst[11:7]
+                                                                                          : _GEN_4
+                                                                                              ? io_inst[11:7]
+                                                                                              : _GEN_3
+                                                                                                  ? io_inst[11:7]
+                                                                                                  : 5'h0;
 endmodule
 
