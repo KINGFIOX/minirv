@@ -43,7 +43,7 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- IF ---------- */
 
   val if_ = Module(new IF) // Instruction Fetch: NPC + PC
-  io.inst_rom := if_.io.irom
+  io.inst_rom <> if_.io.irom
 
   private val cur_inst = if_.io.out.inst
   private val pc_4     = if_.io.out.pc_4
@@ -92,6 +92,7 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- MEM ---------- */
 
   val mem_ = Module(new MemU)
+  mem_.io.bus <> io.bus
   mem_.io.in.op    := cu_.io.ctrl.op_mem
   mem_.io.in.addr  := alu_.io.out
   mem_.io.in.wdata := regfile_.read(cu_.io.rf.rs2_i)
