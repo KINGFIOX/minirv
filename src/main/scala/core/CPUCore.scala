@@ -36,13 +36,6 @@ class CPUCore extends Module with HasCoreParameter {
     val debug = new DebugBundle
   })
 
-  // debug default
-  io.debug.wb_have_inst := true.B
-  io.debug.wb_pc        := 0.U
-  io.debug.wb_ena       := false.B
-  io.debug.wb_reg       := 0.U
-  io.debug.wb_value     := 0.U
-
   /* ---------- IF ---------- */
 
   val if_ = Module(new IF) // Instruction Fetch: NPC + PC
@@ -114,6 +107,27 @@ class CPUCore extends Module with HasCoreParameter {
     is(WB_sel.wbsel_PC4) {
       regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
     }
+  }
+
+  /* ---------- debug ---------- */
+
+  io.debug.wb_have_inst := true.B
+  io.debug.wb_pc        := if_.io.out.pc_4 - 4.U
+  io.debug.wb_ena       := false.B
+  io.debug.wb_reg       := 0.U
+  io.debug.wb_value     := 0.U
+
+  when(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X) {
+    io.debug.wb_ena := true.B
+    io.debug.wb_reg := cu_.io.rf.rd_i
+    io.debug.wb_value := MuxCase(
+      0.U,
+      Seq(
+        (cu_.io.ctrl.wb_sel === WB_sel.wbsel_ALU) -> alu_.io.out,
+        (cu_.io.ctrl.wb_sel === WB_sel.wbsel_MEM) -> mem_.io.out.rdata,
+        (cu_.io.ctrl.wb_sel === WB_sel.wbsel_PC4) -> if_.io.out.pc_4
+      )
+    )
   }
 
   // val rd = cu_.io.rf.rd_i
