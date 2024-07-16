@@ -1,4 +1,4 @@
-package io.device
+package io.vivado.device
 
 /** @brief
   *   copy from 萝老
