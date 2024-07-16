@@ -13,6 +13,7 @@ import component.ALU
 import component.MemU
 import component.OP1_sel
 import component.OP2_sel
+import component.WB_sel
 
 class InstROMBundle extends Bundle with HasCoreParameter {
   val addr = Output(UInt(XLEN.W)) // FIXME 对 IROM 传入指令的地址, 但是这个地址可能不是 32bit
@@ -53,10 +54,6 @@ class CPUCore extends Module with HasCoreParameter {
 
   val regfile_ = new RegFile
 
-  val rs1 = regfile_.read(cu_.io.rf.rs1)
-  val rs2 = regfile_.read(cu_.io.rf.rs2)
-  val imm = cu_.io.imm
-
   /* ---------- EXE ---------- */
 
   val alu_ = Module(new ALU)
@@ -64,29 +61,40 @@ class CPUCore extends Module with HasCoreParameter {
   alu_.io.op1 := Mux1H(
     Seq(
       (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_ZERO) -> 0.U,
-      (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_RS1)  -> rs1,
+      (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_RS1)  -> regfile_.read(cu_.io.rf.rs1_i),
       (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_PC)   -> (if_.io.out.pc_4 - 4.U)
     )
   )
   alu_.io.op2 := Mux1H(
     Seq(
       (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_ZERO) -> 0.U,
-      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_SEXT) -> imm,
-      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_RS2)  -> regfile_.read(cu_.io.rf.rs2)
+      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_IMM)  -> cu_.io.imm,
+      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_RS2)  -> regfile_.read(cu_.io.rf.rs2_i)
     )
   )
+
+  // 应该还会有 csr, branch 之类的
 
   /* ---------- MEM ---------- */
 
   val mem_ = Module(new MemU)
   mem_.io.in.op    := cu_.io.ctrl.op_mem
   mem_.io.in.addr  := alu_.io.out
-  mem_.io.in.wdata := rs2
+  mem_.io.in.wdata := regfile_.read(cu_.io.rf.rs2_i)
 
   /* ---------- WB ---------- */
 
-  val rd = cu_.io.rf.rd
+  switch(cu_.io.ctrl.wb_sel) {
+    is(WB_sel.wbsel_X) {}
+    is(WB_sel.wbsel_ALU) {}
+    is(WB_sel.wbsel_CSR) {}
+    is(WB_sel.wbsel_MEM) {
+      regfile_.write(cu_.io.rf.rd_i, mem_.io.out.rdata)
+    }
+    is(WB_sel.wbsel_PC4) {}
+  }
 
+  // val rd = cu_.io.rf.rd_i
 }
 
 object CPUCore extends App {

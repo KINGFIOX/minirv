@@ -21,7 +21,7 @@ object OP1_sel extends ChiselEnum {
   *   rs2 输入有 rs2 和 符号拓展立即数
   */
 object OP2_sel extends ChiselEnum {
-  val op2sel_ZERO, op2sel_SEXT, op2sel_RS2 = Value
+  val op2sel_ZERO, op2sel_IMM, op2sel_RS2 = Value
 }
 
 /* ---------- ---------- 控制信号线 ---------- ---------- */
@@ -38,10 +38,13 @@ class CUControlBundle extends Bundle {
   val bru_op  = Output(BRUOpType())
 }
 
+/** @brief
+  *   这里 _i 表示 index
+  */
 class CURegFileBundle extends Bundle with HasRegFileParameter {
-  val rs1 = Output(UInt(NRRegbits.W))
-  val rs2 = Output(UInt(NRRegbits.W))
-  val rd  = Output(UInt(NRRegbits.W))
+  val rs1_i = Output(UInt(NRRegbits.W))
+  val rs2_i = Output(UInt(NRRegbits.W))
+  val rd_i  = Output(UInt(NRRegbits.W))
 }
 
 /** @brief
@@ -73,9 +76,9 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   io.imm := 0.U
 
   // 寄存器
-  io.rf.rs1 := io.inst(19, 15)
-  io.rf.rs2 := io.inst(24, 20)
-  io.rf.rd  := 0.U /* 默认是不写入 */
+  io.rf.rs1_i := io.inst(19, 15)
+  io.rf.rs2_i := io.inst(24, 20)
+  io.rf.rd_i  := 0.U /* 默认是不写入 */
 
   /* ---------- store ---------- */
 
@@ -83,7 +86,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   private def store_inst(op: MemUOpType.Type) = {
     io.ctrl.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
     io.ctrl.op1_sel := OP1_sel.op1sel_RS1 // rs1
-    io.ctrl.op2_sel := OP2_sel.op2sel_SEXT // offset
+    io.ctrl.op2_sel := OP2_sel.op2sel_IMM // offset
     io.ctrl.op_mem  := op
     io.imm          := SignExt(io.inst(31, 25) ## io.inst(11, 7))
   }
@@ -98,6 +101,31 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   }
 
   /* ---------- load ---------- */
+
+  // lw rd, offset(rs1)
+  private def load_inst(op: MemUOpType.Type) = {
+    io.ctrl.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
+    io.ctrl.op1_sel := OP1_sel.op1sel_RS1 // rs1
+    io.ctrl.op2_sel := OP2_sel.op2sel_IMM // offset
+    io.imm          := SignExt(io.inst(31, 20))
+    io.ctrl.op_mem  := op
+    io.ctrl.wb_sel  := WB_sel.wbsel_MEM
+  }
+  when(io.inst === Instructions.LB) {
+    load_inst(MemUOpType.mem_LB)
+  }
+  when(io.inst === Instructions.LBU) {
+    load_inst(MemUOpType.mem_LBU)
+  }
+  when(io.inst === Instructions.LH) {
+    load_inst(MemUOpType.mem_LH)
+  }
+  when(io.inst === Instructions.LHU) {
+    load_inst(MemUOpType.mem_LHU)
+  }
+  when(io.inst === Instructions.LW) {
+    load_inst(MemUOpType.mem_LW)
+  }
 
   // val csignals /* : List */ = ListLookup(
   //   io.inst,

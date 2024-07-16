@@ -27,7 +27,7 @@ class EXE_MEM_Bundle extends Bundle with HasCoreParameter {
 }
 
 /** @brief
-  *   Mem 的输出
+  *   Mem 的输出, 已经做好了符号拓展了
   */
 class MEM_WB_Bundle extends Bundle with HasCoreParameter {
   val rdata = Output(UInt(XLEN.W))
