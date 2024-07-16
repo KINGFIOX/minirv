@@ -10,6 +10,7 @@ import common.HasCoreParameter
 import common.Instructions
 import utils.SignExt
 import common.HasRegFileParameter
+import component.OP1_sel.{op1sel_PC => op1sel_PC}
 
 /* ---------- ---------- alu 的两端 mux ---------- ---------- */
 
@@ -129,6 +130,8 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   }
 
   /* ---------- R-type ---------- */
+
+  // add rd, rs1, rs2
   private def R_inst(op: ALUOpType.Type) = {
     io.ctrl.alu_op  := op
     io.ctrl.op1_sel := OP1_sel.op1sel_RS1
@@ -167,20 +170,48 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     R_inst(ALUOpType.alu_SLTU)
   }
 
+  /* ---------- I-type ---------- */
+
+  private def I_inst(op: ALUOpType.Type) = {
+    io.ctrl.alu_op  := op
+    io.ctrl.op1_sel := OP1_sel.op1sel_RS1
+    io.ctrl.op2_sel := OP2_sel.op2sel_IMM
+    io.imm          := io.inst(31, 20)
+    io.rf.rd_i      := io.inst(11, 7)
+    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+  }
+  when(io.inst === Instructions.ADDI) {
+    I_inst(ALUOpType.alu_ADD)
+  }
+  when(io.inst === Instructions.ANDI) {
+    I_inst(ALUOpType.alu_AND)
+  }
+  when(io.inst === Instructions.ORI) {
+    I_inst(ALUOpType.alu_OR)
+  }
+  when(io.inst === Instructions.XORI) {
+    I_inst(ALUOpType.alu_XOR)
+  }
+  when(io.inst === Instructions.SLLI) {
+    I_inst(ALUOpType.alu_SLL)
+  }
+  when(io.inst === Instructions.SRLI) {
+    I_inst(ALUOpType.alu_SRL)
+  }
+  when(io.inst === Instructions.SRAI) {
+    I_inst(ALUOpType.alu_SRA)
+  }
+  when(io.inst === Instructions.SLTI) {
+    I_inst(ALUOpType.alu_SLT)
+  }
+  when(io.inst === Instructions.SLTIU) {
+    I_inst(ALUOpType.alu_SLTU)
+  }
+
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
   //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
   //   Array(
-  //     // I-type
-  //     Instructions.ADDI  -> List(ALUOpType.alu_ADD, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.ANDI  -> List(ALUOpType.alu_AND, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.ORI   -> List(ALUOpType.alu_OR, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.XORI  -> List(ALUOpType.alu_XOR, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SLLI  -> List(ALUOpType.alu_SLL, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SRLI  -> List(ALUOpType.alu_SRL, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SRAI  -> List(ALUOpType.alu_SRA, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SLTI  -> List(ALUOpType.alu_SLT, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.SLTIU -> List(ALUOpType.alu_SLTU, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_ALU, NPCOpType.npc_4, BRUOpType.bru_X),
   //     // B-type 分支判断不交给 alu, 因此 alu 的输入直接是 0
   //     Instructions.BEQ  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BEQ),
   //     Instructions.BNE  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BNE),
