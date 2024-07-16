@@ -24,11 +24,25 @@ object OP2_sel extends ChiselEnum {
   val op2sel_ZERO, op2sel_SEXT, op2sel_RS2 = Value
 }
 
-// 因此
-// csr 的时候, 两边都是 0
-// branch 的时候，两端都是 0
+/* ---------- ---------- 控制信号线 ---------- ---------- */
 
-/* ---------- ---------- alu 的两端 mux ---------- ---------- */
+class CUControlBundle extends Bundle {
+  // 控制信号
+  val alu_op  = Output(ALUOpType())
+  val op1_sel = Output(OP1_sel())
+  val op2_sel = Output(OP2_sel())
+  val op_mem  = Output(MemUOpType())
+  val csr_op  = Output(CSRUOpType())
+  val wb_sel  = Output(WB_sel())
+  val npc_op  = Output(NPCOpType())
+  val bru_op  = Output(BRUOpType())
+}
+
+class CURegFileBundle extends Bundle with HasRegFileParameter {
+  val rs1 = Output(UInt(NRRegbits.W))
+  val rs2 = Output(UInt(NRRegbits.W))
+  val rd  = Output(UInt(NRRegbits.W))
+}
 
 /** @brief
   *   解码，会生成一排控制信号。然后也会进行符号拓展操作, 输出寄存器的编号
@@ -36,51 +50,41 @@ object OP2_sel extends ChiselEnum {
 class CU extends Module with HasCoreParameter with HasRegFileParameter {
   val io = IO(new Bundle {
     val inst = Input(UInt(XLEN.W))
-    // 控制信号
-    val alu_op  = Output(ALUOpType())
-    val op1_sel = Output(OP1_sel())
-    val op2_sel = Output(OP2_sel())
-    val op_mem  = Output(MemUOpType())
-    val csr_op  = Output(CSRUOpType())
-    val wb_sel  = Output(WB_sel())
-    val npc_op  = Output(NPCOpType())
-    val bru_op  = Output(BRUOpType())
-    // 立即数: 正常情况下 SignExt, CSR 的时候 ZeroExt
-    val imm = Output(UInt(XLEN.W))
-    // 寄存器编号
-    val rs1 = Output(UInt(NRRegbits.W))
-    val rs2 = Output(UInt(NRRegbits.W))
-    val rd  = Output(UInt(NRRegbits.W))
-    //
+    val ctrl = new CUControlBundle // 控制线
+    val imm  = Output(UInt(XLEN.W)) // 立即数: 正常情况下 SignExt, CSR 的时候 ZeroExt
+    val rf   = new CURegFileBundle
   })
 
   // 最常见的还是 pc + 4
-  io.npc_op := NPCOpType.npc_4
+  io.ctrl.npc_op := NPCOpType.npc_4
 
   /* ---------- default ---------- */
-  // 2. 还是每个周期都会有 default
-  io.alu_op  := ALUOpType.alu_X
-  io.op1_sel := OP1_sel.op1sel_ZERO
-  io.op2_sel := OP2_sel.op2sel_ZERO
-  io.op_mem  := MemUOpType.mem_X
-  io.csr_op  := CSRUOpType.csru_X
-  io.wb_sel  := WB_sel.wbsel_X
-  io.bru_op  := BRUOpType.bru_X
-  io.imm     := 0.U
 
-  io.rs1 := io.inst(19, 15)
-  io.rs2 := io.inst(24, 20)
+  // 控制信号
+  io.ctrl.alu_op  := ALUOpType.alu_X
+  io.ctrl.op1_sel := OP1_sel.op1sel_ZERO
+  io.ctrl.op2_sel := OP2_sel.op2sel_ZERO
+  io.ctrl.op_mem  := MemUOpType.mem_X
+  io.ctrl.csr_op  := CSRUOpType.csru_X
+  io.ctrl.wb_sel  := WB_sel.wbsel_X
+  io.ctrl.bru_op  := BRUOpType.bru_X
 
-  // 这里设计是: 不写入就是 写入 x0
-  io.rd := 0.U /* 默认是不写入 */
+  // 立即数
+  io.imm := 0.U
+
+  // 寄存器
+  io.rf.rs1 := io.inst(19, 15)
+  io.rf.rs2 := io.inst(24, 20)
+  io.rf.rd  := 0.U /* 默认是不写入 */
 
   /* ---------- store ---------- */
-  private def store_inst(op_mem_type: MemUOpType.Type) = {
-    io.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
-    io.op1_sel := OP1_sel.op1sel_RS1
-    io.op2_sel := OP2_sel.op2sel_SEXT
-    io.op_mem  := op_mem_type
-    io.imm     := SignExt(io.inst(31, 25) ## io.inst(11, 7))
+
+  private def store_inst(op: MemUOpType.Type) = {
+    io.ctrl.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
+    io.ctrl.op1_sel := OP1_sel.op1sel_RS1
+    io.ctrl.op2_sel := OP2_sel.op2sel_SEXT
+    io.ctrl.op_mem  := op
+    io.imm          := SignExt(io.inst(31, 25) ## io.inst(11, 7))
   }
   when(io.inst === Instructions.SW) {
     store_inst(MemUOpType.mem_SW)
