@@ -31,7 +31,7 @@ trait HasSocParameter {
   val ADDR_MEM_END   = 0xffff_f000
 }
 
-class SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
+class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
   /** @brief
     *   这些是外设了
