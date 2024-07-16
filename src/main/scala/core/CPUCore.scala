@@ -104,7 +104,7 @@ class CPUCore extends Module with HasCoreParameter {
     is(WB_sel.wbsel_ALU) {
       regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
     }
-    is(WB_sel.wbsel_CSR) {}
+    is(WB_sel.wbsel_CSR) { /* TODO */ }
     is(WB_sel.wbsel_MEM) {
       regfile_.write(cu_.io.rf.rd_i, mem_.io.out.rdata)
     }
