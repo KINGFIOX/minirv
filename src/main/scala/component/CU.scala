@@ -172,7 +172,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   /* ---------- I-type ---------- */
 
-  private def I_inst(op: ALUOpType.Type) = {
+  private def Imm_inst(op: ALUOpType.Type) = {
     io.ctrl.alu_op  := op
     io.ctrl.op1_sel := OP1_sel.op1sel_RS1
     io.ctrl.op2_sel := OP2_sel.op2sel_IMM
@@ -181,59 +181,61 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.wb_sel  := WB_sel.wbsel_ALU
   }
   when(io.inst === Instructions.ADDI) {
-    I_inst(ALUOpType.alu_ADD)
+    Imm_inst(ALUOpType.alu_ADD)
   }
   when(io.inst === Instructions.ANDI) {
-    I_inst(ALUOpType.alu_AND)
+    Imm_inst(ALUOpType.alu_AND)
   }
   when(io.inst === Instructions.ORI) {
-    I_inst(ALUOpType.alu_OR)
+    Imm_inst(ALUOpType.alu_OR)
   }
   when(io.inst === Instructions.XORI) {
-    I_inst(ALUOpType.alu_XOR)
+    Imm_inst(ALUOpType.alu_XOR)
   }
   when(io.inst === Instructions.SLLI) {
-    I_inst(ALUOpType.alu_SLL)
+    Imm_inst(ALUOpType.alu_SLL)
   }
   when(io.inst === Instructions.SRLI) {
-    I_inst(ALUOpType.alu_SRL)
+    Imm_inst(ALUOpType.alu_SRL)
   }
   when(io.inst === Instructions.SRAI) {
-    I_inst(ALUOpType.alu_SRA)
+    Imm_inst(ALUOpType.alu_SRA)
   }
   when(io.inst === Instructions.SLTI) {
-    I_inst(ALUOpType.alu_SLT)
+    Imm_inst(ALUOpType.alu_SLT)
   }
   when(io.inst === Instructions.SLTIU) {
-    I_inst(ALUOpType.alu_SLTU)
+    Imm_inst(ALUOpType.alu_SLTU)
   }
 
   /* ---------- Branch ---------- */
 
-  private def B_inst(op: BRUOpType.Type) = {
+  private def Branch_inst(op: BRUOpType.Type) = {
     io.ctrl.bru_op := op
     io.imm         := SignExt(io.inst(31) ## io.inst(7) ## io.inst(30, 25) ## io.inst(11, 8) ## 0.U(1.W))
     io.ctrl.npc_op := NPCOpType.npc_BR
   }
 
   when(io.inst === Instructions.BEQ) {
-    B_inst(BRUOpType.bru_BEQ)
+    Branch_inst(BRUOpType.bru_BEQ)
   }
   when(io.inst === Instructions.BNE) {
-    B_inst(BRUOpType.bru_BNE)
+    Branch_inst(BRUOpType.bru_BNE)
   }
   when(io.inst === Instructions.BGE) {
-    B_inst(BRUOpType.bru_BGE)
+    Branch_inst(BRUOpType.bru_BGE)
   }
   when(io.inst === Instructions.BGEU) {
-    B_inst(BRUOpType.bru_BGEU)
+    Branch_inst(BRUOpType.bru_BGEU)
   }
   when(io.inst === Instructions.BLT) {
-    B_inst(BRUOpType.bru_BLT)
+    Branch_inst(BRUOpType.bru_BLT)
   }
   when(io.inst === Instructions.BLTU) {
-    B_inst(BRUOpType.bru_BLTU)
+    Branch_inst(BRUOpType.bru_BLTU)
   }
+
+  /* ---------- Branch ---------- */
 
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
