@@ -18,10 +18,10 @@ object NPCOpType extends ChiselEnum {
   *   IF 阶段的输入信号
   */
 class IFBundle extends Bundle with HasCoreParameter {
-  val offset  = Input(UInt(XLEN.W))
+  val offset  = Input(UInt(XLEN.W)) // br/jal 是 offset
   val br_flag = Input(Bool())
   val op      = Input(NPCOpType())
-  val addr    = Input(UInt(XLEN.W)) // br/jal 是 offset ; jalr 就是绝对地址
+  val addr    = Input(UInt(XLEN.W)) // jalr 就是绝对地址
 }
 
 class IF extends Module with HasCoreParameter with HasECALLParameter {

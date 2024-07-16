@@ -208,17 +208,37 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     I_inst(ALUOpType.alu_SLTU)
   }
 
+  /* ---------- Branch ---------- */
+
+  private def B_inst(op: BRUOpType.Type) = {
+    io.ctrl.bru_op := op
+    io.imm         := SignExt(io.inst(31) ## io.inst(7) ## io.inst(30, 25) ## io.inst(11, 8) ## 0.U(1.W))
+    io.ctrl.npc_op := NPCOpType.npc_BR
+  }
+
+  when(io.inst === Instructions.BEQ) {
+    B_inst(BRUOpType.bru_BEQ)
+  }
+  when(io.inst === Instructions.BNE) {
+    B_inst(BRUOpType.bru_BNE)
+  }
+  when(io.inst === Instructions.BGE) {
+    B_inst(BRUOpType.bru_BGE)
+  }
+  when(io.inst === Instructions.BGEU) {
+    B_inst(BRUOpType.bru_BGEU)
+  }
+  when(io.inst === Instructions.BLT) {
+    B_inst(BRUOpType.bru_BLT)
+  }
+  when(io.inst === Instructions.BLTU) {
+    B_inst(BRUOpType.bru_BLTU)
+  }
+
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
   //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
   //   Array(
-  //     // B-type 分支判断不交给 alu, 因此 alu 的输入直接是 0
-  //     Instructions.BEQ  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BEQ),
-  //     Instructions.BNE  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BNE),
-  //     Instructions.BGE  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BGE),
-  //     Instructions.BGEU -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BGEU),
-  //     Instructions.BLT  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BLT),
-  //     Instructions.BLTU -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_BR, BRUOpType.bru_BLTU),
   //     // jalr   // pc = (rs1 + sext(offset)) & ~1
   //     Instructions.JALR -> List(ALUOpType.alu_X, OP1_sel.op1sel_RS1, OP2_sel.op2sel_SEXT, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_PC4, NPCOpType.npc_JALR, BRUOpType.bru_X),
   //     // jal

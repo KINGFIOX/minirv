@@ -14,6 +14,7 @@ import component.MemU
 import component.OP1_sel
 import component.OP2_sel
 import component.WB_sel
+import component.BRU
 
 class InstROMBundle extends Bundle with HasCoreParameter {
   val addr = Output(UInt(XLEN.W)) // FIXME 对 IROM 传入指令的地址, 但是这个地址可能不是 32bit
@@ -58,14 +59,14 @@ class CPUCore extends Module with HasCoreParameter {
 
   val alu_ = Module(new ALU)
   alu_.io.alu_op := cu_.io.ctrl.alu_op
-  alu_.io.op1 := Mux1H(
+  alu_.io.op1_v := Mux1H(
     Seq(
       (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_ZERO) -> 0.U,
       (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_RS1)  -> regfile_.read(cu_.io.rf.rs1_i),
       (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_PC)   -> (if_.io.out.pc_4 - 4.U)
     )
   )
-  alu_.io.op2 := Mux1H(
+  alu_.io.op2_v := Mux1H(
     Seq(
       (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_ZERO) -> 0.U,
       (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_IMM)  -> cu_.io.imm,
@@ -74,6 +75,15 @@ class CPUCore extends Module with HasCoreParameter {
   )
 
   // 应该还会有 csr, branch 之类的
+  private val bru_ = Module(new BRU)
+  bru_.io.in.rs1_v  := regfile_.read(cu_.io.rf.rs1_i)
+  bru_.io.in.rs2_v  := regfile_.read(cu_.io.rf.rs2_i)
+  bru_.io.in.bru_op := cu_.io.ctrl.bru_op
+  if_.io.in.br_flag := bru_.io.br_flag // 是否发生跳转, 只有 branch 才有
+
+  if_.io.in.op     := cu_.io.ctrl.npc_op // default: npc_4
+  if_.io.in.offset := cu_.io.imm // jal 和 branch 会改
+  if_.io.in.addr   := regfile_.read(cu_.io.rf.rs1_i) // rs1
 
   /* ---------- MEM ---------- */
 
@@ -85,7 +95,7 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- WB ---------- */
 
   switch(cu_.io.ctrl.wb_sel) {
-    is(WB_sel.wbsel_X) {}
+    is(WB_sel.wbsel_X) { /* 啥也不干 */ }
     is(WB_sel.wbsel_ALU) {
       regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
     }
