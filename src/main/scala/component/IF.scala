@@ -38,7 +38,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   io.irom.addr := pc
   io.out.inst  := io.irom.inst
-  io.out.pc4   := pc + 4.U
+  io.out.pc_4  := pc + 4.U
 
   /* ---------- pc_next ---------- */
 

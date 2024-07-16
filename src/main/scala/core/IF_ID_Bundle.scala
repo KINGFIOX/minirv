@@ -9,5 +9,5 @@ import common.HasCoreParameter
   */
 class IF_ID_Bundle extends Bundle with HasCoreParameter {
   val inst = Output(UInt(XLEN.W))
-  val pc4  = Output(UInt(XLEN.W))
+  val pc_4 = Output(UInt(XLEN.W))
 }
