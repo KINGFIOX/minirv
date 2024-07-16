@@ -79,10 +79,11 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   /* ---------- store ---------- */
 
+  // sw rs2, offset(rs1) 存的是 rs2, 但是计算的是 op1=rs1 和 op2=offset
   private def store_inst(op: MemUOpType.Type) = {
     io.ctrl.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
-    io.ctrl.op1_sel := OP1_sel.op1sel_RS1
-    io.ctrl.op2_sel := OP2_sel.op2sel_SEXT
+    io.ctrl.op1_sel := OP1_sel.op1sel_RS1 // rs1
+    io.ctrl.op2_sel := OP2_sel.op2sel_SEXT // offset
     io.ctrl.op_mem  := op
     io.imm          := SignExt(io.inst(31, 25) ## io.inst(11, 7))
   }
