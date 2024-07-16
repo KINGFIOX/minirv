@@ -24,6 +24,7 @@
             # c++
             # rocmPackages.llvm.clang-tools-extra
             verilator
+	    bear
             # utils
             qemu
             (with pkgsCross.riscv64; [ glib.stdenv.cc buildPackages.gdb ])
