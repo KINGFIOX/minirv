@@ -35,7 +35,7 @@ module IF(
          {pc},
          {io_in_rs1_v + io_in_imm & 32'hFFFFFFFE},
          {pc + io_in_imm},
-         {io_in_br_flag ? pc + io_in_rs1_v : _pc_T_4},
+         {io_in_br_flag ? pc + io_in_imm : _pc_T_4},
          {_pc_T_4},
          {pc}};
       pc <= _GEN[io_in_op];
@@ -48,13 +48,16 @@ endmodule
 
 module CU(
   input  [31:0] io_inst,
-  output [3:0]  io_ctrl_alu_op,
-  output [1:0]  io_ctrl_op1_sel,
-                io_ctrl_op2_sel,
+  output [3:0]  io_ctrl_alu_calc,
+  output [1:0]  io_ctrl_alu_op1,
+                io_ctrl_alu_op2,
   output [3:0]  io_ctrl_op_mem,
   output [2:0]  io_ctrl_wb_sel,
                 io_ctrl_npc_op,
                 io_ctrl_bru_op,
+  output [1:0]  io_ctrl_csr_calc,
+                io_ctrl_csr_op1_sel,
+  output [11:0] io_ctrl_csr_csr_i,
   output [31:0] io_imm,
   output [4:0]  io_rf_rs1_i,
                 io_rf_rs2_i,
@@ -108,7 +111,14 @@ module CU(
   wire        _GEN_40 = io_inst[6:0] == 7'h37;
   wire        _GEN_41 = io_inst[6:0] == 7'h17;
   wire        _GEN_42 = _GEN_41 | _GEN_40;
-  assign io_ctrl_alu_op =
+  wire        _GEN_43 = _GEN == 10'hF3;
+  wire        _GEN_44 = _GEN == 10'h173;
+  wire        _GEN_45 = _GEN == 10'h1F3;
+  wire        _GEN_46 = _GEN_45 | _GEN_44 | _GEN_43;
+  wire        _GEN_47 = _GEN == 10'h2F3;
+  wire        _GEN_48 = _GEN == 10'h373;
+  wire        _GEN_49 = _GEN == 10'h3F3;
+  assign io_ctrl_alu_calc =
     _GEN_42
       ? 4'h1
       : _GEN_31
@@ -149,7 +159,7 @@ module CU(
                                                                               ? 4'h2
                                                                               : {3'h0,
                                                                                  _GEN_11};
-  assign io_ctrl_op1_sel =
+  assign io_ctrl_alu_op1 =
     _GEN_41
       ? 2'h2
       : _GEN_40
@@ -158,7 +168,7 @@ module CU(
              _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23
                | _GEN_22 | _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15
                | _GEN_14 | _GEN_13 | _GEN_12 | _GEN_11};
-  assign io_ctrl_op2_sel =
+  assign io_ctrl_alu_op2 =
     _GEN_41 | _GEN_40 | _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25
     | _GEN_24 | _GEN_23 | _GEN_22
       ? 2'h1
@@ -174,14 +184,16 @@ module CU(
                   ? 4'h4
                   : _GEN_3 ? 4'h1 : _GEN_2 ? 4'h6 : _GEN_1 ? 4'h7 : {_GEN_0, 3'h0};
   assign io_ctrl_wb_sel =
-    _GEN_42
-      ? 3'h1
-      : _GEN_39 | _GEN_38
-          ? 3'h4
-          : _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23
-            | _GEN_22 | _GEN_21
-              ? 3'h1
-              : _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 ? 3'h3 : 3'h0;
+    _GEN_49 | _GEN_48 | _GEN_47 | _GEN_46
+      ? 3'h2
+      : _GEN_42
+          ? 3'h1
+          : _GEN_39 | _GEN_38
+              ? 3'h4
+              : _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24
+                | _GEN_23 | _GEN_22 | _GEN_21
+                  ? 3'h1
+                  : _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 ? 3'h3 : 3'h0;
   assign io_ctrl_npc_op =
     _GEN_39
       ? 3'h3
@@ -194,161 +206,205 @@ module CU(
       : _GEN_36
           ? 3'h1
           : _GEN_35 ? 3'h4 : _GEN_34 ? 3'h3 : _GEN_33 ? 3'h6 : _GEN_32 ? 3'h5 : 3'h0;
+  assign io_ctrl_csr_calc =
+    _GEN_49
+      ? 2'h3
+      : _GEN_48
+          ? 2'h2
+          : _GEN_47 ? 2'h1 : _GEN_45 ? 2'h3 : _GEN_44 ? 2'h2 : {1'h0, _GEN_43};
+  assign io_ctrl_csr_op1_sel = _GEN_49 | _GEN_48 | _GEN_47 ? 2'h1 : {_GEN_46, 1'h0};
+  assign io_ctrl_csr_csr_i =
+    _GEN_49
+      ? io_inst[31:20]
+      : _GEN_48
+          ? io_inst[31:20]
+          : _GEN_47
+              ? io_inst[31:20]
+              : _GEN_45
+                  ? io_inst[31:20]
+                  : _GEN_44 ? io_inst[31:20] : _GEN_43 ? io_inst[31:20] : 12'h0;
   assign io_imm =
-    _GEN_41
-      ? {io_inst[31:12], 12'h0}
-      : _GEN_40
-          ? {io_inst[31:12], 12'h0}
-          : _GEN_39
-              ? {{12{io_inst[31]}}, io_inst[19:12], io_inst[20], io_inst[30:21], 1'h0}
-              : _GEN_38
-                  ? {{20{io_inst[31]}}, io_inst[31:20]}
-                  : _GEN_37
-                      ? {{20{io_inst[31]}},
-                         io_inst[7],
-                         io_inst[30:25],
-                         io_inst[11:8],
-                         1'h0}
-                      : _GEN_36
-                          ? {{20{io_inst[31]}},
-                             io_inst[7],
-                             io_inst[30:25],
-                             io_inst[11:8],
+    _GEN_49
+      ? {27'h0, io_inst[19:15]}
+      : _GEN_48
+          ? {27'h0, io_inst[19:15]}
+          : _GEN_47
+              ? {27'h0, io_inst[19:15]}
+              : _GEN_41
+                  ? {io_inst[31:12], 12'h0}
+                  : _GEN_40
+                      ? {io_inst[31:12], 12'h0}
+                      : _GEN_39
+                          ? {{12{io_inst[31]}},
+                             io_inst[19:12],
+                             io_inst[20],
+                             io_inst[30:21],
                              1'h0}
-                          : _GEN_35
-                              ? {{20{io_inst[31]}},
-                                 io_inst[7],
-                                 io_inst[30:25],
-                                 io_inst[11:8],
-                                 1'h0}
-                              : _GEN_34
+                          : _GEN_38
+                              ? {{20{io_inst[31]}}, io_inst[31:20]}
+                              : _GEN_37
                                   ? {{20{io_inst[31]}},
                                      io_inst[7],
                                      io_inst[30:25],
                                      io_inst[11:8],
                                      1'h0}
-                                  : _GEN_33
+                                  : _GEN_36
                                       ? {{20{io_inst[31]}},
                                          io_inst[7],
                                          io_inst[30:25],
                                          io_inst[11:8],
                                          1'h0}
-                                      : _GEN_32
+                                      : _GEN_35
                                           ? {{20{io_inst[31]}},
                                              io_inst[7],
                                              io_inst[30:25],
                                              io_inst[11:8],
                                              1'h0}
-                                          : _GEN_31
-                                              ? {20'h0, io_inst[31:20]}
-                                              : _GEN_30
-                                                  ? {20'h0, io_inst[31:20]}
-                                                  : _GEN_29
-                                                      ? {20'h0, io_inst[31:20]}
-                                                      : _GEN_28
-                                                          ? {20'h0, io_inst[31:20]}
-                                                          : _GEN_27
-                                                              ? {20'h0, io_inst[31:20]}
-                                                              : _GEN_25
-                                                                  ? {20'h0,
+                                          : _GEN_34
+                                              ? {{20{io_inst[31]}},
+                                                 io_inst[7],
+                                                 io_inst[30:25],
+                                                 io_inst[11:8],
+                                                 1'h0}
+                                              : _GEN_33
+                                                  ? {{20{io_inst[31]}},
+                                                     io_inst[7],
+                                                     io_inst[30:25],
+                                                     io_inst[11:8],
+                                                     1'h0}
+                                                  : _GEN_32
+                                                      ? {{20{io_inst[31]}},
+                                                         io_inst[7],
+                                                         io_inst[30:25],
+                                                         io_inst[11:8],
+                                                         1'h0}
+                                                      : _GEN_31
+                                                          ? {{20{io_inst[31]}},
+                                                             io_inst[31:20]}
+                                                          : _GEN_30
+                                                              ? {{20{io_inst[31]}},
+                                                                 io_inst[31:20]}
+                                                              : _GEN_29
+                                                                  ? {{20{io_inst[31]}},
                                                                      io_inst[31:20]}
-                                                                  : _GEN_24
-                                                                      ? {20'h0,
+                                                                  : _GEN_28
+                                                                      ? {{20{io_inst[31]}},
                                                                          io_inst[31:20]}
-                                                                      : _GEN_23
-                                                                          ? {20'h0,
+                                                                      : _GEN_27
+                                                                          ? {{20{io_inst[31]}},
                                                                              io_inst[31:20]}
-                                                                          : _GEN_22
-                                                                              ? {20'h0,
+                                                                          : _GEN_25
+                                                                              ? {{20{io_inst[31]}},
                                                                                  io_inst[31:20]}
-                                                                              : _GEN_7
+                                                                              : _GEN_24
                                                                                   ? {{20{io_inst[31]}},
                                                                                      io_inst[31:20]}
-                                                                                  : _GEN_6
+                                                                                  : _GEN_23
                                                                                       ? {{20{io_inst[31]}},
                                                                                          io_inst[31:20]}
-                                                                                      : _GEN_5
+                                                                                      : _GEN_22
                                                                                           ? {{20{io_inst[31]}},
                                                                                              io_inst[31:20]}
-                                                                                          : _GEN_4
+                                                                                          : _GEN_7
                                                                                               ? {{20{io_inst[31]}},
                                                                                                  io_inst[31:20]}
-                                                                                              : _GEN_3
+                                                                                              : _GEN_6
                                                                                                   ? {{20{io_inst[31]}},
                                                                                                      io_inst[31:20]}
-                                                                                                  : _GEN_2
+                                                                                                  : _GEN_5
                                                                                                       ? {{20{io_inst[31]}},
-                                                                                                         io_inst[31:25],
-                                                                                                         io_inst[11:7]}
-                                                                                                      : _GEN_1
+                                                                                                         io_inst[31:20]}
+                                                                                                      : _GEN_4
                                                                                                           ? {{20{io_inst[31]}},
-                                                                                                             io_inst[31:25],
-                                                                                                             io_inst[11:7]}
-                                                                                                          : _GEN_0
+                                                                                                             io_inst[31:20]}
+                                                                                                          : _GEN_3
                                                                                                               ? {{20{io_inst[31]}},
-                                                                                                                 io_inst[31:25],
-                                                                                                                 io_inst[11:7]}
-                                                                                                              : 32'h0;
+                                                                                                                 io_inst[31:20]}
+                                                                                                              : _GEN_2
+                                                                                                                  ? {{20{io_inst[31]}},
+                                                                                                                     io_inst[31:25],
+                                                                                                                     io_inst[11:7]}
+                                                                                                                  : _GEN_1
+                                                                                                                      ? {{20{io_inst[31]}},
+                                                                                                                         io_inst[31:25],
+                                                                                                                         io_inst[11:7]}
+                                                                                                                      : _GEN_0
+                                                                                                                          ? {{20{io_inst[31]}},
+                                                                                                                             io_inst[31:25],
+                                                                                                                             io_inst[11:7]}
+                                                                                                                          : 32'h0;
   assign io_rf_rs1_i = io_inst[19:15];
   assign io_rf_rs2_i = io_inst[24:20];
   assign io_rf_rd_i =
-    _GEN_41
+    _GEN_49
       ? io_inst[11:7]
-      : _GEN_40
+      : _GEN_48
           ? io_inst[11:7]
-          : _GEN_39
+          : _GEN_47
               ? io_inst[11:7]
-              : _GEN_38
+              : _GEN_45
                   ? io_inst[11:7]
-                  : _GEN_31
+                  : _GEN_44
                       ? io_inst[11:7]
-                      : _GEN_30
+                      : _GEN_43
                           ? io_inst[11:7]
-                          : _GEN_29
+                          : _GEN_41
                               ? io_inst[11:7]
-                              : _GEN_28
+                              : _GEN_40
                                   ? io_inst[11:7]
-                                  : _GEN_27
+                                  : _GEN_39
                                       ? io_inst[11:7]
-                                      : _GEN_25
+                                      : _GEN_38
                                           ? io_inst[11:7]
-                                          : _GEN_24
+                                          : _GEN_31
                                               ? io_inst[11:7]
-                                              : _GEN_23
+                                              : _GEN_30
                                                   ? io_inst[11:7]
-                                                  : _GEN_22
+                                                  : _GEN_29
                                                       ? io_inst[11:7]
-                                                      : _GEN_20
+                                                      : _GEN_28
                                                           ? io_inst[11:7]
-                                                          : _GEN_19
+                                                          : _GEN_27
                                                               ? io_inst[11:7]
-                                                              : _GEN_18
+                                                              : _GEN_25
                                                                   ? io_inst[11:7]
-                                                                  : _GEN_17
+                                                                  : _GEN_24
                                                                       ? io_inst[11:7]
-                                                                      : _GEN_16
+                                                                      : _GEN_23
                                                                           ? io_inst[11:7]
-                                                                          : _GEN_15
+                                                                          : _GEN_22
                                                                               ? io_inst[11:7]
-                                                                              : _GEN_14
+                                                                              : _GEN_20
                                                                                   ? io_inst[11:7]
-                                                                                  : _GEN_13
+                                                                                  : _GEN_19
                                                                                       ? io_inst[11:7]
-                                                                                      : _GEN_12
+                                                                                      : _GEN_18
                                                                                           ? io_inst[11:7]
-                                                                                          : _GEN_10
+                                                                                          : _GEN_17
                                                                                               ? io_inst[11:7]
-                                                                                              : _GEN_7
+                                                                                              : _GEN_16
                                                                                                   ? io_inst[11:7]
-                                                                                                  : _GEN_6
+                                                                                                  : _GEN_15
                                                                                                       ? io_inst[11:7]
-                                                                                                      : _GEN_5
+                                                                                                      : _GEN_14
                                                                                                           ? io_inst[11:7]
-                                                                                                          : _GEN_4
+                                                                                                          : _GEN_13
                                                                                                               ? io_inst[11:7]
-                                                                                                              : _GEN_3
+                                                                                                              : _GEN_12
                                                                                                                   ? io_inst[11:7]
-                                                                                                                  : 5'h0;
+                                                                                                                  : _GEN_10
+                                                                                                                      ? io_inst[11:7]
+                                                                                                                      : _GEN_7
+                                                                                                                          ? io_inst[11:7]
+                                                                                                                          : _GEN_6
+                                                                                                                              ? io_inst[11:7]
+                                                                                                                              : _GEN_5
+                                                                                                                                  ? io_inst[11:7]
+                                                                                                                                  : _GEN_4
+                                                                                                                                      ? io_inst[11:7]
+                                                                                                                                      : _GEN_3
+                                                                                                                                          ? io_inst[11:7]
+                                                                                                                                          : 5'h0;
 endmodule
 
 module ALU(
@@ -377,6 +433,123 @@ module ALU(
      {io_op1_v + io_op2_v},
      {32'h0}};
   assign io_out = _GEN[io_alu_op];
+endmodule
+
+module CSRU(
+  input         clock,
+                reset,
+  input  [1:0]  io_calc,
+  input  [11:0] io_csr_i,
+  input  [31:0] io_op1,
+  output [31:0] io_out
+);
+
+  reg  [31:0]      mstatus;
+  reg  [31:0]      mcause;
+  reg  [31:0]      mepc;
+  wire             _GEN = io_calc == 2'h1;
+  wire             _GEN_0 = io_calc == 2'h2;
+  wire             _csr_T = io_csr_i == 12'h300;
+  wire             _csr_T_1 = io_csr_i == 12'h342;
+  wire             _csr_T_2 = io_csr_i == 12'h341;
+  wire             _csr_T_5 = io_csr_i == 12'h300;
+  wire             _csr_T_6 = io_csr_i == 12'h342;
+  wire             _csr_T_7 = io_csr_i == 12'h341;
+  wire [3:0][31:0] _GEN_1 =
+    {{_csr_T_5 ? mstatus : _csr_T_6 ? mcause : _csr_T_7 ? mepc : 32'h0},
+     {_csr_T ? mstatus : _csr_T_1 ? mcause : _csr_T_2 ? mepc : 32'h0},
+     {io_csr_i == 12'h300
+        ? mstatus
+        : io_csr_i == 12'h342 ? mcause : io_csr_i == 12'h341 ? mepc : 32'h0},
+     {32'h0}};
+  `ifndef SYNTHESIS
+    always @(posedge clock) begin
+      automatic logic _GEN_2 = (|io_calc) & _GEN;
+      automatic logic _GEN_3 = (|io_calc) & ~_GEN;
+      automatic logic _GEN_4 = _GEN_3 & _GEN_0;
+      automatic logic _GEN_5 = _GEN_3 & ~_GEN_0 & (&io_calc);
+      if ((`PRINTF_COND_) & _GEN_2 & ~reset)
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+      if ((`PRINTF_COND_) & _GEN_2 & ~reset)
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+      if ((`PRINTF_COND_) & _GEN_4 & ~reset)
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+      if ((`PRINTF_COND_) & _GEN_4 & ~reset) begin
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+      end
+      if ((`PRINTF_COND_) & _GEN_5 & ~reset)
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+      if ((`PRINTF_COND_) & _GEN_5 & ~reset) begin
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+        $fwrite(32'h80000002, "accessing csr=%x\n", io_csr_i);
+      end
+    end // always @(posedge)
+  `endif // not def SYNTHESIS
+  always @(posedge clock) begin
+    if (reset) begin
+      mstatus <= 32'h8;
+      mcause <= 32'h0;
+      mepc <= 32'h0;
+    end
+    else if (|io_calc) begin
+      automatic logic _GEN_6;
+      automatic logic _GEN_7;
+      automatic logic _GEN_8;
+      automatic logic _GEN_9;
+      automatic logic _GEN_10;
+      automatic logic _GEN_11;
+      _GEN_6 = io_csr_i == 12'h300;
+      _GEN_7 = io_csr_i == 12'h342;
+      _GEN_8 = _GEN_6 | ~_GEN_7;
+      _GEN_9 = _GEN_6 | _GEN_7;
+      _GEN_10 = io_csr_i != 12'h341;
+      _GEN_11 = _GEN_9 | _GEN_10;
+      if (_GEN) begin
+        if (_GEN_6)
+          mstatus <= io_op1;
+        if (_GEN_8) begin
+        end
+        else
+          mcause <= io_op1;
+        if (_GEN_11) begin
+        end
+        else
+          mepc <= io_op1;
+      end
+      else if (_GEN_0) begin
+        automatic logic [31:0] _GEN_12;
+        _GEN_12 =
+          (_csr_T ? mstatus : _csr_T_1 ? mcause : _csr_T_2 ? mepc : 32'h0) | io_op1;
+        if (_GEN_6)
+          mstatus <= _GEN_12;
+        if (_GEN_8) begin
+        end
+        else
+          mcause <= _GEN_12;
+        if (_GEN_11) begin
+        end
+        else
+          mepc <= _GEN_12;
+      end
+      else begin
+        automatic logic [31:0] _GEN_13;
+        _GEN_13 =
+          (_csr_T_5 ? mstatus : _csr_T_6 ? mcause : _csr_T_7 ? mepc : 32'h0) & ~io_op1;
+        if ((&io_calc) & _GEN_6)
+          mstatus <= _GEN_13;
+        if (~(&io_calc) | _GEN_6 | ~_GEN_7) begin
+        end
+        else
+          mcause <= _GEN_13;
+        if (~(&io_calc) | _GEN_9 | _GEN_10) begin
+        end
+        else
+          mepc <= _GEN_13;
+      end
+    end
+  end // always @(posedge)
+  assign io_out = (|io_calc) ? _GEN_1[io_calc] : 32'h0;
 endmodule
 
 module BRU(
@@ -409,7 +582,7 @@ module MemU(
   input  [31:0] io_bus_rdata,
   output [3:0]  io_bus_wen,
   output [31:0] io_bus_wdata,
-                io_out_rdata
+                io_rdata
 );
 
   wire            _GEN = io_in_op == 4'h1;
@@ -427,38 +600,53 @@ module MemU(
   wire            _GEN_7 = io_in_op == 4'h4;
   wire            _GEN_8 = io_in_op == 4'h5;
   wire            _GEN_9 = io_in_op == 4'h6;
-  wire            _GEN_10 = io_in_op == 4'h7;
-  wire            _GEN_11 = io_in_op == 4'h8;
+  wire            _GEN_10 = io_in_addr[1:0] == 2'h1;
+  wire            _GEN_11 = io_in_op == 4'h7;
+  wire            _GEN_12 = ~(|io_in_op) | _GEN | _GEN_2 | _GEN_6 | _GEN_7 | _GEN_8;
+  wire            _GEN_13 = io_in_op == 4'h8;
   `ifndef SYNTHESIS
     always @(posedge clock) begin
-      automatic logic _GEN_12 = (|io_in_op) & ~_GEN;
-      automatic logic _GEN_13 = _GEN_12 & ~_GEN_2;
-      automatic logic _GEN_14 = _GEN_13 & ~_GEN_6 & ~_GEN_7;
-      automatic logic _GEN_15 = _GEN_14 & ~_GEN_8 & ~_GEN_9;
-      if ((`PRINTF_COND_) & _GEN_12 & _GEN_2 & ~_GEN_4 & ~reset)
+      automatic logic _GEN_14 = (|io_in_op) & ~_GEN;
+      automatic logic _GEN_15 = _GEN_14 & ~_GEN_2;
+      automatic logic _GEN_16 = _GEN_15 & ~_GEN_6 & ~_GEN_7;
+      automatic logic _GEN_17 = _GEN_16 & ~_GEN_8 & ~_GEN_9;
+      if ((`PRINTF_COND_) & (|io_in_op) & _GEN & ~reset)
+        $fwrite(32'h80000002, "lb=%x\n", io_bus_rdata);
+      if ((`PRINTF_COND_) & _GEN_14 & _GEN_2 & ~_GEN_4 & ~reset)
         $fwrite(32'h80000002, "Unaligned memory access at %x\n", io_in_addr);
-      if ((`PRINTF_COND_) & _GEN_13 & _GEN_6 & (|(io_in_addr[1:0])) & ~reset)
+      if ((`PRINTF_COND_) & _GEN_15 & _GEN_6 & (|(io_in_addr[1:0])) & ~reset)
         $fwrite(32'h80000002, "Unaligned memory access at %x\n", io_in_addr);
-      if ((`PRINTF_COND_) & _GEN_14 & _GEN_8 & ~_GEN_4 & ~reset)
+      if ((`PRINTF_COND_) & _GEN_16 & _GEN_8 & ~_GEN_4 & ~reset)
         $fwrite(32'h80000002, "Unaligned memory access at %x\n", io_in_addr);
-      if ((`PRINTF_COND_) & _GEN_15 & _GEN_10
-          & (io_in_addr[1:0] == 2'h1 | (&(io_in_addr[1:0]))) & ~reset)
+      if ((`PRINTF_COND_) & _GEN_17 & _GEN_11 & (_GEN_10 | (&(io_in_addr[1:0]))) & ~reset)
         $fwrite(32'h80000002, "Unaligned memory access at %x\n", io_in_addr);
-      if ((`PRINTF_COND_) & _GEN_15 & ~_GEN_10 & _GEN_11 & (|(io_in_addr[1:0])) & ~reset)
+      if ((`PRINTF_COND_) & _GEN_17 & ~_GEN_11 & _GEN_13 & (|(io_in_addr[1:0])) & ~reset)
         $fwrite(32'h80000002, "Unaligned memory access at %x\n", io_in_addr);
     end // always @(posedge)
   `endif // not def SYNTHESIS
   assign io_bus_addr = {io_in_addr[31:2], 2'h0};
   assign io_bus_wen =
-    ~(|io_in_op) | _GEN | _GEN_2 | _GEN_6 | _GEN_7 | _GEN_8
+    _GEN_12
       ? 4'h0
       : _GEN_9
           ? 4'h1 << io_in_addr[1:0]
-          : _GEN_10
+          : _GEN_11
               ? (_GEN_3 ? 4'hC : (|(io_in_addr[1:0])) ? 4'h0 : 4'h3)
-              : {4{_GEN_11 & ~(|(io_in_addr[1:0]))}};
-  assign io_bus_wdata = io_in_wdata;
-  assign io_out_rdata =
+              : {4{_GEN_13 & ~(|(io_in_addr[1:0]))}};
+  assign io_bus_wdata =
+    _GEN_12
+      ? io_in_wdata
+      : _GEN_9
+          ? {(&(io_in_addr[1:0])) ? io_in_wdata[7:0] : 8'h0,
+             _GEN_3 ? io_in_wdata[7:0] : 8'h0,
+             _GEN_10 ? io_in_wdata[7:0] : 8'h0,
+             (|(io_in_addr[1:0])) ? 8'h0 : io_in_wdata[7:0]}
+          : _GEN_11
+              ? (_GEN_3
+                   ? {io_in_wdata[15:0], 16'h0}
+                   : (|(io_in_addr[1:0])) ? io_in_wdata : {16'h0, io_in_wdata[15:0]})
+              : io_in_wdata;
+  assign io_rdata =
     (|io_in_op)
       ? (_GEN
            ? {{24{_GEN_1[7]}}, _GEN_1}
@@ -495,7 +683,11 @@ module _rf_32x32(
   input  [4:0]  W2_addr,
   input         W2_en,
                 W2_clk,
-  input  [31:0] W2_data
+  input  [31:0] W2_data,
+  input  [4:0]  W3_addr,
+  input         W3_en,
+                W3_clk,
+  input  [31:0] W3_data
 );
 
   reg [31:0] Memory[0:31];
@@ -506,6 +698,8 @@ module _rf_32x32(
       Memory[W1_addr] <= W1_data;
     if (W2_en & 1'h1)
       Memory[W2_addr] <= W2_data;
+    if (W3_en & 1'h1)
+      Memory[W3_addr] <= W3_data;
   end // always @(posedge)
   assign R0_data = R0_en ? Memory[R0_addr] : 32'bx;
   assign R1_data = R1_en ? Memory[R1_addr] : 32'bx;
@@ -527,18 +721,22 @@ module CPUCore(
   output [31:0] io_debug_wb_value
 );
 
-  wire [31:0] _mem__io_out_rdata;
+  wire [31:0] _mem__io_rdata;
   wire        _bru__io_br_flag;
+  wire [31:0] _csru__io_out;
   wire [31:0] _alu__io_out;
   wire [31:0] __rf_ext_R0_data;
   wire [31:0] __rf_ext_R1_data;
-  wire [3:0]  _cu__io_ctrl_alu_op;
-  wire [1:0]  _cu__io_ctrl_op1_sel;
-  wire [1:0]  _cu__io_ctrl_op2_sel;
+  wire [3:0]  _cu__io_ctrl_alu_calc;
+  wire [1:0]  _cu__io_ctrl_alu_op1;
+  wire [1:0]  _cu__io_ctrl_alu_op2;
   wire [3:0]  _cu__io_ctrl_op_mem;
   wire [2:0]  _cu__io_ctrl_wb_sel;
   wire [2:0]  _cu__io_ctrl_npc_op;
   wire [2:0]  _cu__io_ctrl_bru_op;
+  wire [1:0]  _cu__io_ctrl_csr_calc;
+  wire [1:0]  _cu__io_ctrl_csr_op1_sel;
+  wire [11:0] _cu__io_ctrl_csr_csr_i;
   wire [31:0] _cu__io_imm;
   wire [4:0]  _cu__io_rf_rs1_i;
   wire [4:0]  _cu__io_rf_rs2_i;
@@ -548,10 +746,26 @@ module CPUCore(
   wire        _if__io_in_rs1_v_T = _cu__io_rf_rs1_i == 5'h0;
   wire [31:0] _io_debug_wb_pc_T = _if__io_out_pc_4 - 32'h4;
   wire        _mem__io_in_wdata_T = _cu__io_rf_rs2_i == 5'h0;
-  wire        _GEN = _cu__io_ctrl_wb_sel == 3'h1;
-  wire        _GEN_0 = _cu__io_rf_rd_i == 5'h0;
-  wire        _GEN_1 = _cu__io_ctrl_wb_sel == 3'h2;
-  wire        _GEN_2 = _cu__io_ctrl_wb_sel == 3'h3;
+  wire        _GEN = _cu__io_ctrl_wb_sel == 3'h0;
+  wire        _GEN_0 = _cu__io_ctrl_wb_sel == 3'h1;
+  wire        _GEN_1 = _cu__io_rf_rd_i == 5'h0;
+  wire        _GEN_2 = _cu__io_ctrl_wb_sel == 3'h2;
+  wire        _GEN_3 = _cu__io_ctrl_wb_sel == 3'h3;
+  reg  [31:0] io_debug_wb_pc_REG;
+  reg         io_debug_wb_ena_REG;
+  reg  [4:0]  io_debug_wb_reg_REG;
+  reg  [31:0] io_debug_wb_value_REG;
+  always @(posedge clock) begin
+    io_debug_wb_pc_REG <= _io_debug_wb_pc_T;
+    io_debug_wb_ena_REG <= |_cu__io_ctrl_wb_sel;
+    io_debug_wb_reg_REG <= _cu__io_rf_rd_i;
+    io_debug_wb_value_REG <=
+      _cu__io_ctrl_wb_sel == 3'h1
+        ? _alu__io_out
+        : _cu__io_ctrl_wb_sel == 3'h3
+            ? _mem__io_rdata
+            : _cu__io_ctrl_wb_sel == 3'h4 ? _if__io_out_pc_4 : 32'h0;
+  end // always @(posedge)
   IF if_ (
     .clock         (clock),
     .reset         (reset),
@@ -565,18 +779,21 @@ module CPUCore(
     .io_in_rs1_v   (_if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data)
   );
   CU cu_ (
-    .io_inst         (_if__io_out_inst),
-    .io_ctrl_alu_op  (_cu__io_ctrl_alu_op),
-    .io_ctrl_op1_sel (_cu__io_ctrl_op1_sel),
-    .io_ctrl_op2_sel (_cu__io_ctrl_op2_sel),
-    .io_ctrl_op_mem  (_cu__io_ctrl_op_mem),
-    .io_ctrl_wb_sel  (_cu__io_ctrl_wb_sel),
-    .io_ctrl_npc_op  (_cu__io_ctrl_npc_op),
-    .io_ctrl_bru_op  (_cu__io_ctrl_bru_op),
-    .io_imm          (_cu__io_imm),
-    .io_rf_rs1_i     (_cu__io_rf_rs1_i),
-    .io_rf_rs2_i     (_cu__io_rf_rs2_i),
-    .io_rf_rd_i      (_cu__io_rf_rd_i)
+    .io_inst             (_if__io_out_inst),
+    .io_ctrl_alu_calc    (_cu__io_ctrl_alu_calc),
+    .io_ctrl_alu_op1     (_cu__io_ctrl_alu_op1),
+    .io_ctrl_alu_op2     (_cu__io_ctrl_alu_op2),
+    .io_ctrl_op_mem      (_cu__io_ctrl_op_mem),
+    .io_ctrl_wb_sel      (_cu__io_ctrl_wb_sel),
+    .io_ctrl_npc_op      (_cu__io_ctrl_npc_op),
+    .io_ctrl_bru_op      (_cu__io_ctrl_bru_op),
+    .io_ctrl_csr_calc    (_cu__io_ctrl_csr_calc),
+    .io_ctrl_csr_op1_sel (_cu__io_ctrl_csr_op1_sel),
+    .io_ctrl_csr_csr_i   (_cu__io_ctrl_csr_csr_i),
+    .io_imm              (_cu__io_imm),
+    .io_rf_rs1_i         (_cu__io_rf_rs1_i),
+    .io_rf_rs2_i         (_cu__io_rf_rs2_i),
+    .io_rf_rd_i          (_cu__io_rf_rd_i)
   );
   _rf_32x32 _rf_ext (
     .R0_addr (_cu__io_rf_rs2_i),
@@ -588,28 +805,43 @@ module CPUCore(
     .R1_clk  (clock),
     .R1_data (__rf_ext_R1_data),
     .W0_addr (_cu__io_rf_rd_i),
-    .W0_en
-      (~(~(|_cu__io_ctrl_wb_sel) | _GEN | _GEN_1 | _GEN_2) & _cu__io_ctrl_wb_sel == 3'h4),
+    .W0_en   (~(_GEN | _GEN_0 | _GEN_2 | _GEN_3) & _cu__io_ctrl_wb_sel == 3'h4),
     .W0_clk  (clock),
-    .W0_data (_GEN_0 ? 32'h0 : _if__io_out_pc_4),
+    .W0_data (_GEN_1 ? 32'h0 : _if__io_out_pc_4),
     .W1_addr (_cu__io_rf_rd_i),
-    .W1_en   (~(~(|_cu__io_ctrl_wb_sel) | _GEN | _GEN_1) & _GEN_2),
+    .W1_en   (~(_GEN | _GEN_0 | _GEN_2) & _GEN_3),
     .W1_clk  (clock),
-    .W1_data (_GEN_0 ? 32'h0 : _mem__io_out_rdata),
+    .W1_data (_GEN_1 ? 32'h0 : _mem__io_rdata),
     .W2_addr (_cu__io_rf_rd_i),
-    .W2_en   ((|_cu__io_ctrl_wb_sel) & _GEN),
+    .W2_en   (~(_GEN | _GEN_0) & _GEN_2),
     .W2_clk  (clock),
-    .W2_data (_GEN_0 ? 32'h0 : _alu__io_out)
+    .W2_data (_GEN_1 ? 32'h0 : _csru__io_out),
+    .W3_addr (_cu__io_rf_rd_i),
+    .W3_en   (~_GEN & _GEN_0),
+    .W3_clk  (clock),
+    .W3_data (_GEN_1 ? 32'h0 : _alu__io_out)
   );
   ALU alu_ (
     .io_op1_v
-      ((_cu__io_ctrl_op1_sel != 2'h1 | _if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data)
-       | (_cu__io_ctrl_op1_sel == 2'h2 ? _io_debug_wb_pc_T : 32'h0)),
+      ((_cu__io_ctrl_alu_op1 != 2'h1 | _if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data)
+       | (_cu__io_ctrl_alu_op1 == 2'h2 ? _io_debug_wb_pc_T : 32'h0)),
     .io_op2_v
-      ((_cu__io_ctrl_op2_sel == 2'h1 ? _cu__io_imm : 32'h0)
-       | (_cu__io_ctrl_op2_sel != 2'h2 | _mem__io_in_wdata_T ? 32'h0 : __rf_ext_R0_data)),
-    .io_alu_op (_cu__io_ctrl_alu_op),
+      ((_cu__io_ctrl_alu_op2 == 2'h1 ? _cu__io_imm : 32'h0)
+       | (_cu__io_ctrl_alu_op2 != 2'h2 | _mem__io_in_wdata_T ? 32'h0 : __rf_ext_R0_data)),
+    .io_alu_op (_cu__io_ctrl_alu_calc),
     .io_out    (_alu__io_out)
+  );
+  CSRU csru_ (
+    .clock    (clock),
+    .reset    (reset),
+    .io_calc  (_cu__io_ctrl_csr_calc),
+    .io_csr_i (_cu__io_ctrl_csr_csr_i),
+    .io_op1
+      ((_cu__io_ctrl_csr_op1_sel == 2'h1 ? _cu__io_imm : 32'h0)
+       | (_cu__io_ctrl_csr_op1_sel != 2'h2 | _if__io_in_rs1_v_T
+            ? 32'h0
+            : __rf_ext_R1_data)),
+    .io_out   (_csru__io_out)
   );
   BRU bru_ (
     .io_in_rs1_v  (_if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data),
@@ -627,19 +859,12 @@ module CPUCore(
     .io_bus_rdata (io_bus_rdata),
     .io_bus_wen   (io_bus_wen),
     .io_bus_wdata (io_bus_wdata),
-    .io_out_rdata (_mem__io_out_rdata)
+    .io_rdata     (_mem__io_rdata)
   );
   assign io_debug_wb_have_inst = 1'h1;
-  assign io_debug_wb_pc = _io_debug_wb_pc_T;
-  assign io_debug_wb_ena = |_cu__io_ctrl_wb_sel;
-  assign io_debug_wb_reg = (|_cu__io_ctrl_wb_sel) ? _cu__io_rf_rd_i : 5'h0;
-  assign io_debug_wb_value =
-    (|_cu__io_ctrl_wb_sel)
-      ? (_cu__io_ctrl_wb_sel == 3'h1
-           ? _alu__io_out
-           : _cu__io_ctrl_wb_sel == 3'h3
-               ? _mem__io_out_rdata
-               : _cu__io_ctrl_wb_sel == 3'h4 ? _if__io_out_pc_4 : 32'h0)
-      : 32'h0;
+  assign io_debug_wb_pc = io_debug_wb_pc_REG;
+  assign io_debug_wb_ena = io_debug_wb_ena_REG;
+  assign io_debug_wb_reg = io_debug_wb_reg_REG;
+  assign io_debug_wb_value = io_debug_wb_value_REG;
 endmodule
 
