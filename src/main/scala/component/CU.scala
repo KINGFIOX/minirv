@@ -22,7 +22,7 @@ object CSR_op1_sel extends ChiselEnum {
 class CSRUBundle extends Bundle with HasCSRRegFileParameter {
   val calc    = Output(CSRUOpType()) // 控制器
   val op1_sel = Output(CSR_op1_sel())
-  val csr_reg = Output(UInt(NCSRbits.W)) // 这个就是 csr
+  val csr_i   = Output(UInt(NCSRbits.W)) // 这个就是 csr
 }
 
 /* ---------- ---------- alu 和他的 opN_sel 的控制 ---------- ---------- */
@@ -302,13 +302,13 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   io.ctrl.csr.calc    := CSRUOpType.csru_X
   io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_X
-  io.ctrl.csr.csr_reg := 0.U
+  io.ctrl.csr.csr_i   := 0.U
 
   // csrrw rd, csr, rs1 => t=csr; csr=rs1; rd=t
   def CSR_inst(op: CSRUOpType.Type) = {
     io.ctrl.csr.calc    := op
     io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_RS1
-    io.ctrl.csr.csr_reg := io.inst(31, 20)
+    io.ctrl.csr.csr_i   := io.inst(31, 20)
     io.rf.rd_i          := io.inst(11, 7)
     io.ctrl.wb_sel      := WB_sel.wbsel_CSR
   }
@@ -327,7 +327,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   def CSRI_inst(op: CSRUOpType.Type) = {
     io.ctrl.csr.calc    := op
     io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_ZIMM
-    io.ctrl.csr.csr_reg := io.inst(31, 20)
+    io.ctrl.csr.csr_i   := io.inst(31, 20)
     io.imm              := ZeroExt(io.inst(19, 15))
     io.rf.rd_i          := io.inst(11, 7)
     io.ctrl.wb_sel      := WB_sel.wbsel_CSR

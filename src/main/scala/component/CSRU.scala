@@ -38,7 +38,7 @@ trait HasCSRConst {
 }
 
 object CSRUOpType extends ChiselEnum {
-  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC /* TODO ecall */ = Value
+  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC, csru_ECALL, csru_ERET = Value
 }
 
 /* ---------- ---------- csr ---------- ---------- */
@@ -48,10 +48,10 @@ object CSRUOpType extends ChiselEnum {
   */
 class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with HasCSRConst {
   val io = IO(new Bundle {
-    val op    = Input(CSRUOpType())
+    val calc  = Input(CSRUOpType())
     val csr_i = Input(UInt(NCSRbits.W))
-    val rs1   = Input(UInt(XLEN.W)) // Mux(控制信号 , zimm, rs1)
-    val pc    = Input(UInt(XLEN.W)) // 用于 MEPC
+    val op1   = Input(UInt(XLEN.W)) // Mux(控制信号 , zimm, rs1)
+    val pc_4  = Input(UInt(XLEN.W)) // 用于 MEPC
     val out   = Output(UInt(XLEN.W)) // 读取出来 CSR 的值, rd 由 controller 控制
   })
 
@@ -79,10 +79,12 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
     printf("accessing csr=%x\n", csr_i)
     switch(csr_i) {
       is(MSTATUS.asUInt) {
-        mstatus := wdata
+        val mstatusMask = 0x0000_0008.U(XLEN.W) // 只有 mie(中断开关) , 才能写入
+        mstatus := (mstatus & ~mstatusMask) | (wdata & mstatusMask)
       }
       is(MCAUSE.asUInt) {
-        mcause := wdata
+        val mcauseMask = 0x8000_0000.U(XLEN.W) // 要么发生了 ecall, 要么没有发生
+        mcause := (mcause & ~mcauseMask) | (wdata & mcauseMask)
       }
       is(MEPC.asUInt) {
         mepc := wdata
@@ -96,19 +98,22 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
 
   /* ---------- switch ---------- */
 
-  switch(io.op) {
+  switch(io.calc) {
+    is(CSRUOpType.csru_X) { /* 啥也不干 */ }
     is(CSRUOpType.csru_CSRRW) {
       io.out := _read(io.csr_i)
-      _write(io.csr_i, io.rs1)
+      _write(io.csr_i, io.op1)
     }
     is(CSRUOpType.csru_CSRRS) {
       io.out := _read(io.csr_i)
-      _write(io.csr_i, _read(io.csr_i) | io.rs1)
+      _write(io.csr_i, _read(io.csr_i) | io.op1)
     }
     is(CSRUOpType.csru_CSRRC) {
       io.out := _read(io.csr_i)
-      _write(io.csr_i, _read(io.csr_i) & ~io.rs1)
+      _write(io.csr_i, _read(io.csr_i) & ~io.op1)
     }
+    is(CSRUOpType.csru_ECALL) {}
+    is(CSRUOpType.csru_ERET) {}
   }
 
 }

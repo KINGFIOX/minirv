@@ -16,6 +16,8 @@ import component.BRU
 
 import io.blackbox.InstROMBundle
 import io.DebugBundle
+import component.CSRU
+import component.CSR_op1_sel
 
 /** @brief
   *   这个是站在 CPU 视角的, 总线, 与 DRAM 交互的
@@ -53,6 +55,8 @@ class CPUCore extends Module with HasCoreParameter {
 
   /* ---------- EXE ---------- */
 
+  // ********** ALU
+
   val alu_ = Module(new ALU)
   alu_.io.alu_op := cu_.io.ctrl.alu.calc
   alu_.io.op1_v := Mux1H(
@@ -70,12 +74,26 @@ class CPUCore extends Module with HasCoreParameter {
     )
   )
 
-  // TODO CSR
+  // ********** CSR
+
+  val csru_ = Module(new CSRU)
+  csru_.io.calc  := cu_.io.ctrl.csr.calc
+  csru_.io.csr_i := cu_.io.ctrl.csr.csr_i
+  csru_.io.op1 := Mux1H(
+    Seq(
+      (cu_.io.ctrl.csr.op1_sel === CSR_op1_sel.csr_op1_X)    -> 0.U,
+      (cu_.io.ctrl.csr.op1_sel === CSR_op1_sel.csr_op1_ZIMM) -> cu_.io.imm,
+      (cu_.io.ctrl.csr.op1_sel === CSR_op1_sel.csr_op1_RS1)  -> regfile_.read(cu_.io.rf.rs1_i)
+    )
+  )
+  csru_.io.pc_4 := if_.io.out.pc_4
+
+  // ********** BRU
 
   if_.io.in.op := cu_.io.ctrl.npc_op // default: npc_4
 
   // beq rs1, rs2, offset => if(rs1==rs2) pc=pc+offset
-  private val bru_ = Module(new BRU)
+  val bru_ = Module(new BRU)
   bru_.io.in.rs1_v  := regfile_.read(cu_.io.rf.rs1_i)
   bru_.io.in.rs2_v  := regfile_.read(cu_.io.rf.rs2_i)
   bru_.io.in.bru_op := cu_.io.ctrl.bru_op
@@ -101,7 +119,9 @@ class CPUCore extends Module with HasCoreParameter {
     is(WB_sel.wbsel_ALU) {
       regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
     }
-    is(WB_sel.wbsel_CSR) { /* TODO */ }
+    is(WB_sel.wbsel_CSR) {
+      regfile_.write(cu_.io.rf.rd_i, csru_.io.out)
+    }
     is(WB_sel.wbsel_MEM) {
       regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata)
     }
