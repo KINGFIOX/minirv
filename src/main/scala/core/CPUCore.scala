@@ -70,7 +70,9 @@ class CPUCore extends Module with HasCoreParameter {
     )
   )
 
-  // 应该还会有 csr 之类的
+  // TODO CSR
+
+  if_.io.in.op := cu_.io.ctrl.npc_op // default: npc_4
 
   // beq rs1, rs2, offset => if(rs1==rs2) pc=pc+offset
   private val bru_ = Module(new BRU)
@@ -81,7 +83,6 @@ class CPUCore extends Module with HasCoreParameter {
 
   // jalr rd, offset(rs1) => t=pc+4; pc=(rs1_v+offset)&~1; rd_v=t
   // jal rd, offset => rd=pc+4; pc=pc+offset
-  if_.io.in.op    := cu_.io.ctrl.npc_op // default: npc_4
   if_.io.in.imm   := cu_.io.imm //
   if_.io.in.rs1_v := regfile_.read(cu_.io.rf.rs1_i) // 只有 jalr 会用
 

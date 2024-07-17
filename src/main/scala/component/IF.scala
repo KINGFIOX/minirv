@@ -59,7 +59,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     }
     is(NPCOpType.npc_BR) {
       when(io.in.br_flag) {
-        pc := pc + io.in.rs1_v
+        pc := pc + io.in.imm
       }.otherwise {
         pc := pc + 4.U
       }
