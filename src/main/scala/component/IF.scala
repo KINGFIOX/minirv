@@ -8,8 +8,15 @@ import chisel3._
 import chisel3.util._
 import common.HasCoreParameter
 import common.HasECALLParameter
-import core.IF_ID_Bundle
 import io.blackbox.InstROMBundle
+
+/** @brief
+  *   IF -> ID 之间连接的线
+  */
+class IF_ID_Bundle extends Bundle with HasCoreParameter {
+  val inst = Output(UInt(XLEN.W))
+  val pc_4 = Output(UInt(XLEN.W))
+}
 
 object NPCOpType extends ChiselEnum {
   val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
