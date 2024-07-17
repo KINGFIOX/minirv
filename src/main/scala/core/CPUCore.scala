@@ -9,8 +9,8 @@ import component.RegFile
 import component.CU
 import component.ALU
 import component.MemU
-import component.OP1_sel
-import component.OP2_sel
+import component.ALU_op1_sel
+import component.ALU_op2_sel
 import component.WB_sel
 import component.BRU
 
@@ -54,19 +54,19 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- EXE ---------- */
 
   val alu_ = Module(new ALU)
-  alu_.io.alu_op := cu_.io.ctrl.alu_op
+  alu_.io.alu_op := cu_.io.ctrl.alu.calc
   alu_.io.op1_v := Mux1H(
     Seq(
-      (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_ZERO) -> 0.U,
-      (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_RS1)  -> regfile_.read(cu_.io.rf.rs1_i),
-      (cu_.io.ctrl.op1_sel === OP1_sel.op1sel_PC)   -> (if_.io.out.pc_4 - 4.U)
+      (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_ZERO) -> 0.U,
+      (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_RS1)  -> regfile_.read(cu_.io.rf.rs1_i),
+      (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_PC)   -> (if_.io.out.pc_4 - 4.U)
     )
   )
   alu_.io.op2_v := Mux1H(
     Seq(
-      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_ZERO) -> 0.U,
-      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_IMM)  -> cu_.io.imm,
-      (cu_.io.ctrl.op2_sel === OP2_sel.op2sel_RS2)  -> regfile_.read(cu_.io.rf.rs2_i)
+      (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_ZERO) -> 0.U,
+      (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_IMM)  -> cu_.io.imm,
+      (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_RS2)  -> regfile_.read(cu_.io.rf.rs2_i)
     )
   )
 

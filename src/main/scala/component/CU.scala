@@ -10,34 +10,51 @@ import common.HasCoreParameter
 import common.Instructions
 import utils.SignExt
 import common.HasRegFileParameter
-import component.OP1_sel.{op1sel_PC => op1sel_PC}
 import Log.JALlog
+import utils.ZeroExt
 
-/* ---------- ---------- alu 的两端 mux ---------- ---------- */
+/* ---------- ---------- csr 控制 ---------- ---------- */
 
-object OP1_sel extends ChiselEnum {
-  val op1sel_ZERO, op1sel_RS1, op1sel_PC = Value
+object CSR_op1_sel extends ChiselEnum {
+  val csr_op1_X, csr_op1_ZIMM, csr_op1_RS1 = Value
+}
+
+class CSRUBundle extends Bundle with HasCSRRegFileParameter {
+  val calc    = Output(CSRUOpType()) // 控制器
+  val op1_sel = Output(CSR_op1_sel())
+  val csr_reg = Output(UInt(NCSRbits.W)) // 这个就是 csr
+}
+
+/* ---------- ---------- alu 和他的 opN_sel 的控制 ---------- ---------- */
+
+object ALU_op1_sel extends ChiselEnum {
+  val alu_op1sel_ZERO, alu_op1sel_RS1, alu_op1sel_PC = Value
 }
 
 /** @brief
   *   rs2 输入有 rs2 和 符号拓展立即数
   */
-object OP2_sel extends ChiselEnum {
-  val op2sel_ZERO, op2sel_IMM, op2sel_RS2 = Value
+object ALU_op2_sel extends ChiselEnum {
+  val alu_op2sel_ZERO, alu_op2sel_IMM, alu_op2sel_RS2 = Value
+}
+
+class ALUOPBundle extends Bundle {
+  // 控制信号
+  val calc = Output(ALUOpType())
+  val op1  = Output(ALU_op1_sel())
+  val op2  = Output(ALU_op2_sel())
 }
 
 /* ---------- ---------- 控制信号线 ---------- ---------- */
 
 class CUControlBundle extends Bundle {
   // 控制信号
-  val alu_op  = Output(ALUOpType())
-  val op1_sel = Output(OP1_sel())
-  val op2_sel = Output(OP2_sel())
-  val op_mem  = Output(MemUOpType())
-  val csr_op  = Output(CSRUOpType())
-  val wb_sel  = Output(WB_sel())
-  val npc_op  = Output(NPCOpType())
-  val bru_op  = Output(BRUOpType())
+  val alu    = new ALUOPBundle
+  val op_mem = Output(MemUOpType())
+  val wb_sel = Output(WB_sel())
+  val npc_op = Output(NPCOpType())
+  val bru_op = Output(BRUOpType())
+  val csr    = new CSRUBundle
 }
 
 /** @brief
@@ -66,13 +83,12 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   /* ---------- default ---------- */
 
   // 控制信号
-  io.ctrl.alu_op  := ALUOpType.alu_X
-  io.ctrl.op1_sel := OP1_sel.op1sel_ZERO
-  io.ctrl.op2_sel := OP2_sel.op2sel_ZERO
-  io.ctrl.op_mem  := MemUOpType.mem_X
-  io.ctrl.csr_op  := CSRUOpType.csru_X
-  io.ctrl.wb_sel  := WB_sel.wbsel_X
-  io.ctrl.bru_op  := BRUOpType.bru_X
+  io.ctrl.alu.calc := ALUOpType.alu_X
+  io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_ZERO
+  io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_ZERO
+  io.ctrl.op_mem   := MemUOpType.mem_X
+  io.ctrl.wb_sel   := WB_sel.wbsel_X
+  io.ctrl.bru_op   := BRUOpType.bru_X
 
   // 立即数
   io.imm := 0.U
@@ -86,11 +102,11 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   // sw rs2, offset(rs1) 存的是 rs2, 但是计算的是 op1=rs1 和 op2=offset
   private def store_inst(op: MemUOpType.Type) = {
-    io.ctrl.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
-    io.ctrl.op1_sel := OP1_sel.op1sel_RS1 // rs1
-    io.ctrl.op2_sel := OP2_sel.op2sel_IMM // offset
-    io.ctrl.op_mem  := op
-    io.imm          := SignExt(io.inst(31, 25) ## io.inst(11, 7))
+    io.ctrl.alu.calc := ALUOpType.alu_ADD // rs1 + sext(offset)
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1 // rs1
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM // offset
+    io.ctrl.op_mem   := op
+    io.imm           := SignExt(io.inst(31, 25) ## io.inst(11, 7))
   }
   when(io.inst === Instructions.SW) {
     store_inst(MemUOpType.mem_SW)
@@ -106,13 +122,13 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   // lw rd, offset(rs1)
   private def load_inst(op: MemUOpType.Type) = {
-    io.ctrl.alu_op  := ALUOpType.alu_ADD // rs1 + sext(offset)
-    io.ctrl.op1_sel := OP1_sel.op1sel_RS1 // rs1
-    io.ctrl.op2_sel := OP2_sel.op2sel_IMM // offset
-    io.imm          := SignExt(io.inst(31, 20))
-    io.ctrl.op_mem  := op
-    io.ctrl.wb_sel  := WB_sel.wbsel_MEM
-    io.rf.rd_i      := io.inst(11, 7)
+    io.ctrl.alu.calc := ALUOpType.alu_ADD // rs1 + sext(offset)
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1 // rs1
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM // offset
+    io.imm           := SignExt(io.inst(31, 20))
+    io.ctrl.op_mem   := op
+    io.ctrl.wb_sel   := WB_sel.wbsel_MEM
+    io.rf.rd_i       := io.inst(11, 7)
   }
   when(io.inst === Instructions.LB) {
     load_inst(MemUOpType.mem_LB)
@@ -134,11 +150,11 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   // add rd, rs1, rs2
   private def R_inst(op: ALUOpType.Type) = {
-    io.ctrl.alu_op  := op
-    io.ctrl.op1_sel := OP1_sel.op1sel_RS1
-    io.ctrl.op2_sel := OP2_sel.op2sel_RS2
-    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
-    io.rf.rd_i      := io.inst(11, 7)
+    io.ctrl.alu.calc := op
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_RS2
+    io.ctrl.wb_sel   := WB_sel.wbsel_ALU
+    io.rf.rd_i       := io.inst(11, 7)
   }
   when(io.inst === Instructions.ADD) {
     R_inst(ALUOpType.alu_ADD)
@@ -174,12 +190,12 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   /* ---------- I-type ---------- */
 
   private def Imm_inst(op: ALUOpType.Type) = {
-    io.ctrl.alu_op  := op
-    io.ctrl.op1_sel := OP1_sel.op1sel_RS1
-    io.ctrl.op2_sel := OP2_sel.op2sel_IMM
-    io.imm          := SignExt(io.inst(31, 20))
-    io.rf.rd_i      := io.inst(11, 7)
-    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+    io.ctrl.alu.calc := op
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
+    io.imm           := SignExt(io.inst(31, 20))
+    io.rf.rd_i       := io.inst(11, 7)
+    io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
   when(io.inst === Instructions.ADDI) {
     Imm_inst(ALUOpType.alu_ADD)
@@ -263,36 +279,69 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   /* ---------- LUI ---------- */
 
   when(io.inst === Instructions.LUI) {
-    io.ctrl.alu_op  := ALUOpType.alu_ADD
-    io.ctrl.op1_sel := OP1_sel.op1sel_ZERO /* 就是啥也不干 */
-    io.ctrl.op2_sel := OP2_sel.op2sel_IMM
-    io.imm          := io.inst(31, 12) ## 0.U(12.W) /* 当然这个移位步骤可以移到 ALU(EXE-stage) */
-    io.rf.rd_i      := io.inst(11, 7)
-    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+    io.ctrl.alu.calc := ALUOpType.alu_ADD
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_ZERO /* 就是啥也不干 */
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
+    io.imm           := io.inst(31, 12) ## 0.U(12.W) /* 当然这个移位步骤可以移到 ALU(EXE-stage) */
+    io.rf.rd_i       := io.inst(11, 7)
+    io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
 
   /* ---------- AUIPC ---------- */
 
   when(io.inst === Instructions.AUIPC) {
-    io.ctrl.alu_op  := ALUOpType.alu_ADD
-    io.ctrl.op1_sel := OP1_sel.op1sel_PC
-    io.ctrl.op2_sel := OP2_sel.op2sel_IMM
-    io.imm          := io.inst(31, 12) ## 0.U(12.W)
-    io.rf.rd_i      := io.inst(11, 7)
-    io.ctrl.wb_sel  := WB_sel.wbsel_ALU
+    io.ctrl.alu.calc := ALUOpType.alu_ADD
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_PC
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
+    io.imm           := io.inst(31, 12) ## 0.U(12.W)
+    io.rf.rd_i       := io.inst(11, 7)
+    io.ctrl.wb_sel   := WB_sel.wbsel_ALU
+  }
+
+  /* ---------- CSR ---------- */
+
+  io.ctrl.csr.calc    := CSRUOpType.csru_X
+  io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_X
+  io.ctrl.csr.csr_reg := 0.U
+
+  // csrrw rd, csr, rs1 => t=csr; csr=rs1; rd=t
+  def CSR_inst(op: CSRUOpType.Type) = {
+    io.ctrl.csr.calc    := op
+    io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_RS1
+    io.ctrl.csr.csr_reg := io.inst(31, 20)
+  }
+  when(io.inst === Instructions.CSRRW) {
+    CSR_inst(CSRUOpType.csru_CSRRW)
+  }
+  when(io.inst === Instructions.CSRRS) {
+    CSR_inst(CSRUOpType.csru_CSRRS)
+  }
+  when(io.inst === Instructions.CSRRC) {
+    CSR_inst(CSRUOpType.csru_CSRRC)
+  }
+
+  /* ---------- CSRI ---------- */
+
+  def CSRI_inst(op: CSRUOpType.Type) = {
+    io.ctrl.csr.calc    := op
+    io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_ZIMM
+    io.ctrl.csr.csr_reg := io.inst(31, 20)
+    io.imm              := ZeroExt(io.inst(19, 15))
+  }
+  when(io.inst === Instructions.CSRRWI) {
+    CSRI_inst(CSRUOpType.csru_CSRRW)
+  }
+  when(io.inst === Instructions.CSRRSI) {
+    CSRI_inst(CSRUOpType.csru_CSRRS)
+  }
+  when(io.inst === Instructions.CSRRCI) {
+    CSRI_inst(CSRUOpType.csru_CSRRC)
   }
 
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
   //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
   //   Array(
-  //     // CSR
-  //     Instructions.CSRRW  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRW, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.CSRRWI -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRW, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.CSRRS  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRS, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.CSRRSI -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRS, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.CSRRC  -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRC, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X),
-  //     Instructions.CSRRCI -> List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_CSRRC, WB_sel.wbsel_CSR, NPCOpType.npc_4, BRUOpType.bru_X)
   //     // // 环境
   //     // Instructions.ECALL -> List(ALUOpType.alu_X, OP2_X, MEN_X, REN_X, WB_X, CSRUOpType.csru_X),
   //     // Instructions.MRET  -> List(ALUOpType.alu_X, OP2_X, MEN_X, REN_X, WB_X, CSRUOpType.csru_X)
