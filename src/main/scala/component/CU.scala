@@ -177,7 +177,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu_op  := op
     io.ctrl.op1_sel := OP1_sel.op1sel_RS1
     io.ctrl.op2_sel := OP2_sel.op2sel_IMM
-    io.imm          := io.inst(31, 20)
+    io.imm          := SignExt(io.inst(31, 20))
     io.rf.rd_i      := io.inst(11, 7)
     io.ctrl.wb_sel  := WB_sel.wbsel_ALU
   }
