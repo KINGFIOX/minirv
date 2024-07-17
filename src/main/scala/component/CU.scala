@@ -11,6 +11,7 @@ import common.Instructions
 import utils.SignExt
 import common.HasRegFileParameter
 import component.OP1_sel.{op1sel_PC => op1sel_PC}
+import Log.JALlog
 
 /* ---------- ---------- alu 的两端 mux ---------- ---------- */
 
@@ -251,6 +252,12 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.npc_op := NPCOpType.npc_JAL
     io.ctrl.wb_sel := WB_sel.wbsel_PC4
     io.rf.rd_i     := io.inst(11, 7)
+    // JALlog(
+    //   SignExt(io.inst(31) /* 20 */ ## io.inst(19, 12) /* 19:12 */ ## io.inst(20) /* 11 */ ## io.inst(30, 21) /* 10:1 */ ## 0.U(1.W) /* 0 */ ),
+    //   NPCOpType.npc_JAL,
+    //   WB_sel.wbsel_PC4,
+    //   io.inst(11, 7)
+    // )
   }
 
   /* ---------- LUI ---------- */

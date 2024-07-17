@@ -112,23 +112,21 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- debug ---------- */
 
   io.debug.wb_have_inst := true.B
-  io.debug.wb_pc        := if_.io.out.pc_4 - 4.U
-  io.debug.wb_ena       := false.B
-  io.debug.wb_reg       := 0.U
-  io.debug.wb_value     := 0.U
-
-  when(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X) {
-    io.debug.wb_ena := true.B
-    io.debug.wb_reg := cu_.io.rf.rd_i
-    io.debug.wb_value := MuxCase(
-      0.U,
-      Seq(
-        (cu_.io.ctrl.wb_sel === WB_sel.wbsel_ALU) -> alu_.io.out,
-        (cu_.io.ctrl.wb_sel === WB_sel.wbsel_MEM) -> mem_.io.out.rdata,
-        (cu_.io.ctrl.wb_sel === WB_sel.wbsel_PC4) -> if_.io.out.pc_4
-      )
+  io.debug.wb_pc        := (if_.io.out.pc_4 - 4.U)
+  printf("wb_pc=%x\n", io.debug.wb_pc)
+  printf("pc_4=%x\n", if_.io.out.pc_4)
+  io.debug.wb_ena := Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B)
+  io.debug.wb_reg := cu_.io.rf.rd_i
+  printf("wb_reg=%x\n", io.debug.wb_reg)
+  printf("wb_value=%x\n", io.debug.wb_value)
+  io.debug.wb_value := MuxCase(
+    0.U,
+    Seq(
+      (cu_.io.ctrl.wb_sel === WB_sel.wbsel_ALU) -> alu_.io.out,
+      (cu_.io.ctrl.wb_sel === WB_sel.wbsel_MEM) -> mem_.io.out.rdata,
+      (cu_.io.ctrl.wb_sel === WB_sel.wbsel_PC4) -> if_.io.out.pc_4
     )
-  }
+  )
 
   // val rd = cu_.io.rf.rd_i
 }
