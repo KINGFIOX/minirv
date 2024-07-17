@@ -342,6 +342,12 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     CSRI_inst(CSRUOpType.csru_CSRRC)
   }
 
+  // 线与
+
+  /* ---------- ECALL ---------- */
+
+  /* ---------- MRET ---------- */
+
   // val csignals /* : List */ = ListLookup(
   //   io.inst,
   //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
@@ -357,26 +363,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 object CU extends App {
   val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
     new CU,
-    args = Array("--target-dir", "generated"),
-    firtoolOpts = Array(
-      "--strip-debug-info",
-      "-disable-all-randomization"
-    )
-  )
-}
-
-object CUTest extends App {
-  val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new Module {
-      val io = IO(new Bundle {
-        val inst    = Input(UInt(32.W))
-        val is_addi = Output(Bool())
-      })
-      io.is_addi := false.B
-      when(io.inst === Instructions.ADDI) {
-        io.is_addi := true.B
-      }
-    },
     args = Array("--target-dir", "generated"),
     firtoolOpts = Array(
       "--strip-debug-info",
