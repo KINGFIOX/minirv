@@ -309,6 +309,8 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.csr.calc    := op
     io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_RS1
     io.ctrl.csr.csr_reg := io.inst(31, 20)
+    io.rf.rd_i          := io.inst(11, 7)
+    io.ctrl.wb_sel      := WB_sel.wbsel_CSR
   }
   when(io.inst === Instructions.CSRRW) {
     CSR_inst(CSRUOpType.csru_CSRRW)
@@ -327,6 +329,8 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_ZIMM
     io.ctrl.csr.csr_reg := io.inst(31, 20)
     io.imm              := ZeroExt(io.inst(19, 15))
+    io.rf.rd_i          := io.inst(11, 7)
+    io.ctrl.wb_sel      := WB_sel.wbsel_CSR
   }
   when(io.inst === Instructions.CSRRWI) {
     CSRI_inst(CSRUOpType.csru_CSRRW)
