@@ -1,5 +1,9 @@
+package io
+
 import chisel3._
 import chisel3.util._
+
+import utils.ENV
 import io.blackbox.DistributedSinglePortRAM
 import io.blackbox.DistributedSinglePortROM
 import common.HasCoreParameter
@@ -34,11 +38,6 @@ trait HasSocParameter {
   val ADDR_BUTTON    = 0xffff_f078
   val ADDR_MEM_BEGIN = 0x0000_0000
   val ADDR_MEM_END   = 0xffff_f000
-}
-
-object ENV {
-  // 定义: 是输出到 vivado, 还是 verilator
-  val isVivado = false
 }
 
 import io.blackbox.CLKGen

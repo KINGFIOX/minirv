@@ -1,4 +1,12 @@
+package utils
+
 import chisel3._
+import io.miniRV_SoC
+
+object ENV {
+  // 定义: 是输出到 vivado, 还是 verilator
+  val isVivado = false
+}
 
 /** @brief
   *   .sv 文件要输出到 cdp-tests/mySoC/miniRV_SoC.v

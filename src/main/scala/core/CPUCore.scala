@@ -18,6 +18,8 @@ import io.blackbox.InstROMBundle
 import io.DebugBundle
 import component.CSRU
 import component.CSR_op1_sel
+import component.IntPollU
+import component.Bus_Arbit
 
 /** @brief
   *   这个是站在 CPU 视角的, 总线, 与 DRAM 交互的
@@ -30,10 +32,6 @@ class BusBundle extends Bundle with HasCoreParameter {
 }
 
 // 命名约束: 有下划线的是模块
-
-class IntBundle extends Bundle with HasCoreParameter {
-  val no = Input(UInt(XLEN.W)) // 中断编号
-}
 
 class CPUCore extends Module with HasCoreParameter {
   val io = IO(new Bundle {
@@ -115,11 +113,35 @@ class CPUCore extends Module with HasCoreParameter {
 
   /* ---------- MEM ---------- */
 
+  // ***** interrupt poll *****
+  val intpollu_ = Module(new IntPollU)
+  intpollu_.io.bus.rdata := io.bus.rdata
+
+  // ***** mem *****
   val mem_ = Module(new MemU)
-  mem_.io.bus <> io.bus // mem 接着总线
-  mem_.io.in.op    := cu_.io.ctrl.op_mem
-  mem_.io.in.addr  := alu_.io.out
-  mem_.io.in.wdata := regfile_.read(cu_.io.rf.rs2_i)
+  mem_.io.in.op     := cu_.io.ctrl.op_mem
+  mem_.io.in.addr   := alu_.io.out
+  mem_.io.in.wdata  := regfile_.read(cu_.io.rf.rs2_i)
+  mem_.io.bus.rdata := io.bus.rdata
+
+  // ----- bus -----
+
+  // default
+  io.bus.addr  := 0.U
+  io.bus.wen   := 0.U
+  io.bus.wdata := 0.U
+
+  switch(cu_.io.ctrl.bus_arbit) {
+    is(Bus_Arbit.bus_X) { /* 啥也不干 */ }
+    is(Bus_Arbit.bus_IPoll) {
+      io.bus.addr := intpollu_.io.bus.addr
+    }
+    is(Bus_Arbit.bus_MEM) {
+      io.bus.addr  := mem_.io.bus.addr
+      io.bus.wen   := mem_.io.bus.wen
+      io.bus.wdata := mem_.io.bus.wdata
+    }
+  }
 
   /* ---------- WB ---------- */
 
