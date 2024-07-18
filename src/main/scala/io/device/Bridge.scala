@@ -45,8 +45,8 @@ class Bridge(ranges: Seq[(Int /* addr_begin */, Int /* addr_end */ )]) extends M
     io.dev(i).addr  := io.cpu.addr
     io.dev(i).wen   := Fill(dataBytes, within_range(i)) /* 只有第 i 个不是 0 */ & io.cpu.wen
     io.dev(i).wdata := io.cpu.wdata
-    printf("addr=%x\twdata=%x\ten=%b\n", io.cpu.addr, io.cpu.wdata, Fill(dataBytes, within_range(i)) & io.cpu.wen)
-    printf("within_range(i)=%b, io.cpu.wen=%b\n", within_range(i), io.cpu.wen)
+    // printf("addr=%x\twdata=%x\ten=%b\n", io.cpu.addr, io.cpu.wdata, Fill(dataBytes, within_range(i)) & io.cpu.wen)
+    // printf("within_range(i)=%b, io.cpu.wen=%b\n", within_range(i), io.cpu.wen)
   }
 
 }

@@ -74,8 +74,9 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
 
     // /* ---------- 外设 ---------- */
 
-    // val switch = Input(UInt(switchBits.W)) // 拨码开关
-    // val button = Input(UInt(buttonBits.W)) // 中间 5 个按钮
+    val swit   = Input(UInt(switchBits.W)) // 拨码开关
+    val button = Input(UInt(buttonBits.W)) // 中间 5 个按钮
+
     // // 8 个数码管
     val dig_en = Output(UInt(digitNum.W))
     val DN_A   = Output(Bool())
@@ -87,7 +88,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val DN_G   = Output(Bool())
     val DN_DOT = Output(Bool())
     // //
-    // val led = Output(UInt(ledBits.W))
+    val led = Output(UInt(ledBits.W))
 
     /* ---------- debug ---------- */
 
@@ -119,10 +120,10 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
 
     val addr_space_range = Seq(
       (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
-      (ADDR_DIG, ADDR_DIG + digitBytes) //  4 个 Byte
-      // (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
-      // (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
-      // (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
+      (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
+      (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
+      (ADDR_SWITCH, ADDR_SWITCH + switchBytes), // 24 个 switch
+      (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
     )
 
     val bridge = Module(new Bridge(addr_space_range))
@@ -133,7 +134,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val bus0 = bridge.io.dev(0) // 第一个设备: dram
 
     if (ENV.isVivado) {
-      // vivado 就是用
+      // vivado 就是用 interleaved dram
     } else {
       val dram = Module(new DRAM)
       dram.io.clk := io.fpga_clk
@@ -149,7 +150,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val dig  = Module(new SevenSegDigital)
     dig.io.input_en := bus1.wen
     dig.io.input    := bus1.wdata
-    bus1.rdata      := 0.U // 不用输入啥
+    bus1.rdata      := 0.U // 不用给 CPU 的输入
 
     io.dig_en := dig.io.led_enable // 第几个 enable
     io.DN_A   := dig.io.led.AN
@@ -161,26 +162,27 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     io.DN_G   := dig.io.led.GN
     io.DN_DOT := dig.io.led.dot
 
-    // /* ---------- 24 个 led 灯 ---------- */
+    // ***** 24 个 led *****
 
-    // val bus2 = bridge.io.devices(2)
-    // val reg  = RegInit(VecInit(Seq.fill(3)(0.U(8.W))))
-    // for (i <- 0 until 3) {
-    //   when(bus2.wen(i)) {
-    //     reg(i) := bus2.wdata(8 * i + 7, 8 * i)
-    //   }
-    // }
-    // this.io.led := reg.asUInt
+    val bus2 = bridge.io.dev(2)
+    val reg  = RegInit(VecInit(Seq.fill(3)(0.U(8.W))))
+    for (i <- 0 until 3) {
+      when(bus2.wen(i)) {
+        reg(i) := bus2.wdata(8 * i + 7, 8 * i)
+      }
+    }
+    io.led     := reg.asUInt
+    bus2.rdata := 0.U // 不用给 CPU 的输入
 
-    // /* ---------- 拨码开关 ---------- */
+    // ***** 24 个 拨码开关 *****
 
-    // val bus3 = bridge.io.devices(3)
-    // bus3.rdata := Cat(0.U((32 - 24).W), io.switch)
+    val bus3 = bridge.io.dev(3)
+    bus3.rdata := Cat(0.U((32 - 24).W), io.swit)
 
-    // /* ---------- button ---------- */
+    // ***** 5 个 按钮 *****
 
-    // val bus4 = bridge.io.devices(4)
-    // bus4.rdata := Cat(0.U((32 - 5).W), this.io.button)
+    val bus4 = bridge.io.dev(4)
+    bus4.rdata := Cat(0.U((32 - 5).W), this.io.button)
 
     io.debug := cpu_core.io.debug
   }
