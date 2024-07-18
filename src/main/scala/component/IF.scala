@@ -19,7 +19,7 @@ class IF_ID_Bundle extends Bundle with HasCoreParameter {
 }
 
 object NPCOpType extends ChiselEnum {
-  val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
+  val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL, npc_ERET = Value
 }
 
 /** @brief
@@ -30,6 +30,7 @@ class IFBundle extends Bundle with HasCoreParameter {
   val br_flag = Input(Bool())
   val op      = Input(NPCOpType())
   val rs1_v   = Input(UInt(XLEN.W)) // jalr 就是绝对地址
+  val mepc    = Input(UInt(XLEN.W)) // 用于 ERET
 }
 
 class IF extends Module with HasCoreParameter with HasECALLParameter {
@@ -70,9 +71,12 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     is(NPCOpType.npc_JALR) {
       pc := (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W)
     }
-    // is(NPCOpType.npc_ECALL) {
-    //   pc := ECALL_ADDRESS.U
-    // }
+    is(NPCOpType.npc_ECALL) {
+      pc := ECALL_ADDRESS.U
+    }
+    is(NPCOpType.npc_ERET) {
+      pc := io.in.mepc
+    }
   }
 
 }

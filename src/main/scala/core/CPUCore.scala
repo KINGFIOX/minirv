@@ -31,10 +31,15 @@ class BusBundle extends Bundle with HasCoreParameter {
 
 // 命名约束: 有下划线的是模块
 
+class IntBundle extends Bundle with HasCoreParameter {
+  val no = Input(UInt(XLEN.W)) // 中断编号
+}
+
 class CPUCore extends Module with HasCoreParameter {
   val io = IO(new Bundle {
-    val irom  = Flipped(new InstROMBundle)
-    val bus   = new BusBundle
+    val irom = Flipped(new InstROMBundle)
+    val bus  = new BusBundle
+    // val int_  = new IntBundle
     val debug = new DebugBundle
   })
 
@@ -50,12 +55,13 @@ class CPUCore extends Module with HasCoreParameter {
 
   val cu_ = Module(new CU)
   cu_.io.inst := cur_inst
+  // cu_.io.int_ := io.int_
 
   val regfile_ = new RegFile
 
   /* ---------- EXE ---------- */
 
-  // ********** ALU
+  // ***** ALU *****
 
   val alu_ = Module(new ALU)
   alu_.io.alu_op := cu_.io.ctrl.alu.calc
@@ -74,7 +80,7 @@ class CPUCore extends Module with HasCoreParameter {
     )
   )
 
-  // ********** CSR
+  // ***** CSR *****
 
   val csru_ = Module(new CSRU)
   csru_.io.calc  := cu_.io.ctrl.csr.calc
@@ -86,9 +92,12 @@ class CPUCore extends Module with HasCoreParameter {
       (cu_.io.ctrl.csr.op1_sel === CSR_op1_sel.csr_op1_RS1)  -> regfile_.read(cu_.io.rf.rs1_i)
     )
   )
-  csru_.io.pc_4 := if_.io.out.pc_4
 
-  // ********** BRU
+  // default
+  csru_.io.pc_4  := if_.io.out.pc_4
+  if_.io.in.mepc := csru_.io.out
+
+  // ***** BRU *****
 
   if_.io.in.op := cu_.io.ctrl.npc_op // default: npc_4
 
