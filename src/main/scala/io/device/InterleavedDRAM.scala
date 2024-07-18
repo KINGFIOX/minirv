@@ -4,8 +4,7 @@ import chisel3._
 import chisel3.util._
 
 /** @brief
-  *   我设置了写使能, sw/sh/sb 只用设置不同的使能就行了
-  *
+  *   我设置了写使能, sw/sh/sb 只用设置不同的使能就行了。 这个是 Bridge 的视角
   * @param addr_w
   *   地址宽度
   * @param enable_w
@@ -13,16 +12,16 @@ import chisel3.util._
   * @param data_w
   *   数据宽度
   */
-class DRAM_Bundle(val addrBits: Int, val enBits: Int, val dataBits: Int) extends Bundle {
+class DRAM_Bundle(val addrBits: Int, val enBits: Int = 4, val dataBits: Int) extends Bundle {
   require(dataBits % 8 == 0)
   require(dataBits / 8 == enBits)
-  def subNum      = enBits // 分为多少 份
-  def subDataBits = dataBits / subNum // 每一份数据的位宽是多少
+  def subNum      = enBits // 4
+  def subDataBits = dataBits / subNum // 32/4=8
 
-  val addr         = Input(UInt(addrBits.W))
-  val write_enable = Input(UInt(enBits.W)) // 这个一定是 字节掩码
-  val write_data   = Input(UInt(dataBits.W))
-  val read_data    = Output(UInt(dataBits.W))
+  val addr  = Input(UInt(addrBits.W))
+  val wen   = Input(UInt(enBits.W))
+  val wdata = Input(UInt(dataBits.W))
+  val rdata = Output(UInt(dataBits.W))
 }
 
 /** @brief
@@ -34,22 +33,19 @@ class InterleavedDRAM(self_B: => DRAM_Bundle /* lazy parameter */ ) extends Modu
   private def sub_B = new DRAM_Bundle(self_B.addrBits /* 14 */, 1, self_B.subDataBits /* 8 */ )
 
   val io = IO(new Bundle {
-    val subs = Vec(self_B.subNum, Flipped(sub_B)) // 这个是面向 ip core 的
-    val self = self_B // 这个是面向 cpu core 的, 做了一层抽象: cpu core 就把这个 InterleavedDRAM 就看成是一个正常的 DRAM
+    val self = self_B
+    val subs = Vec(self_B.subNum, Flipped(sub_B))
   })
 
-  // 这里变为向量, 更加便于操作
-  private val read_data  = Wire(Vec(self_B.subNum, UInt(self_B.subDataBits.W)))
-  private val write_data = io.self.write_data.asTypeOf(Vec(self_B.subNum, UInt(self_B.subDataBits.W)))
-
+  private val wdata_vec = io.self.wdata.asTypeOf(Vec(self_B.subNum, UInt(self_B.subDataBits.W)))
   for (i <- 0 until self_B.subNum) {
-    io.subs(i).addr         := io.self.addr
-    io.subs(i).write_enable := io.self.write_enable(i)
-    io.subs(i).write_data   := write_data(i)
-    read_data(i)            := io.subs(i).read_data
+    io.subs(i).addr  := io.self.addr
+    io.subs(i).wen   := io.self.wen(i)
+    io.subs(i).wdata := wdata_vec(i)
   }
 
-  io.self.read_data := read_data.asUInt
+  // FIXME 这里可能有 reverse
+  io.self.rdata := VecInit(io.subs.map(_.rdata)).asUInt
 
 }
 

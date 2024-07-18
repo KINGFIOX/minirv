@@ -5,6 +5,7 @@ import chisel3.util._
 import common.HasCoreParameter
 import core.BusBundle
 import io.HasSocParameter
+import utils.ZeroExt
 
 /** @brief
   *   这个是 CPU 的视角
@@ -31,7 +32,7 @@ class Bridge(ranges: Seq[(Int /* addr_begin */, Int /* addr_end */ )]) extends M
 
   // 这是 one-hot 编码
   private val within_range = VecInit(ranges.map { case (beg, end) =>
-    (BigInt(beg & 0xffff_ffffL).asUInt <= io.cpu.addr && io.cpu.addr <= BigInt(end & 0xffff_ffffL).asUInt)
+    (ZeroExt(beg) <= io.cpu.addr && io.cpu.addr <= ZeroExt(end))
   })
 
   /* ---------- read ---------- */

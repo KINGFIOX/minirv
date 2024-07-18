@@ -64,11 +64,12 @@ class DigDecoder extends Module {
   *   分时复用数码管
   */
 class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParameter {
+
   val io = IO(new Bundle {
     val input_en   = Input(UInt(enBits.W)) // 字节掩码
     val input      = Input(UInt(XLEN.W))
     val led_enable = Output(UInt(digitNum.W))
-    val led        = new SevenSeg_Bundle
+    val led        = new SevenSeg_Bundle // out
   })
 
   require(io.input_en.getWidth * 8 == io.input.getWidth)
