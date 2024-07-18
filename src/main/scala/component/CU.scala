@@ -56,7 +56,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   io.ctrl.alu.calc := ALUOpType.alu_X
   io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_ZERO
   io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_ZERO
-  io.ctrl.op_mem   := MemUOpType.mem_X
+  io.ctrl.op_mem   := MemUOpType.mem_IPoll // 没事就 poll
   io.ctrl.wb_sel   := WB_sel.wbsel_X
   io.ctrl.bru_op   := BRUOpType.bru_X
 

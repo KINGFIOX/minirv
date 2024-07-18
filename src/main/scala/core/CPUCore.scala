@@ -116,7 +116,7 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- MEM ---------- */
 
   val mem_ = Module(new MemU)
-  mem_.io.bus <> io.bus
+  mem_.io.bus <> io.bus // mem 接着总线
   mem_.io.in.op    := cu_.io.ctrl.op_mem
   mem_.io.in.addr  := alu_.io.out
   mem_.io.in.wdata := regfile_.read(cu_.io.rf.rs2_i)

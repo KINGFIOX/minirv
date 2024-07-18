@@ -12,7 +12,7 @@ import core.BusBundle
   *   不过, 这里可能要拓展, 如果是 64 位指令的话
   */
 object MemUOpType extends ChiselEnum {
-  val mem_X, mem_LB, mem_LH, mem_LW, mem_LBU, mem_LHU, mem_SB, mem_SH, mem_SW = Value
+  val mem_X, mem_IPoll, mem_LB, mem_LH, mem_LW, mem_LBU, mem_LHU, mem_SB, mem_SH, mem_SW = Value
 }
 
 import common.HasCoreParameter
@@ -56,7 +56,8 @@ class MemU extends Module with HasCoreParameter {
     */
 
   switch(io.in.op) {
-    is(MemUOpType.mem_X) { /* 啥也不干, 上面的默认值 */ }
+    is(MemUOpType.mem_X) { /* 啥也不干, 上面的默认值 */ /* 这个是 stall */ }
+    is(MemUOpType.mem_IPoll) { /* 啥也不干, 上面的默认值 */ /* 这个表示 轮询器正在工作 */ }
     is(MemUOpType.mem_LB) {
       printf("lb=%x\n", io.bus.rdata)
       io.rdata := SignExt(rdataVec(subword))
