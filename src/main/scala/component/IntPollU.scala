@@ -18,8 +18,10 @@ class IntPollU extends Module with HasCoreParameter with HasSocParameter {
 
   io.bus.wen   := 0.U // 只能是 disable
   io.bus.wdata := 0.U // 只能是 0
-  io.bus.addr  := ADDR_BUTTON.asUInt
+  io.bus.addr  := ADDR_BUTTON.asSInt.asUInt
 
   io.no := io.bus.rdata
+
+  // TODO 生成控制信号
 
 }
