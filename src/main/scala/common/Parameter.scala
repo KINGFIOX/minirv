@@ -32,6 +32,6 @@ trait HasCoreParameter {
   implicit val XLEN: Int = 32 // 机器字长
   // val AddrBits  = XLEN // AddrBits is used in some cases
   // val DataBits  = XLEN // 一个 word 有几个 bit
-  def dataBytes     = XLEN >> 3 // 一个 word 有几个字节  4
-  def dataBytesBits = log2Ceil(dataBytes) // 一个 word 有几个字节的位宽 2
+  def dataBytes     = XLEN >> 3 //   4
+  def dataBytesBits = log2Ceil(dataBytes) // 2
 }

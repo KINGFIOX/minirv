@@ -3,7 +3,6 @@ package io
 import chisel3._
 import chisel3.util._
 
-import utils.ENV
 import io.blackbox.DistributedSinglePortRAM
 import io.blackbox.DistributedSinglePortROM
 import common.HasCoreParameter
@@ -16,11 +15,28 @@ import io.blackbox.IROM
 import io.trace.DRAM
 import io.device.SevenSegDigital
 import io.DebugBundle
+import io.device.BridgeDev_Bundle
+
+object ENV {
+  // 定义: 是输出到 vivado, 还是 verilator
+  val isVivado = false
+}
 
 trait HasSocParameter {
-  val addrBits = 14
-  def iromLens = 1 << addrBits // rom 有 (1 << 14) 个 word
-  def dramLens = 1 << addrBits
+
+  /* ---------- vivado ---------- */
+
+  val addrBits_vivado = 14
+  def iromLens_vivado = 1 << addrBits_vivado // rom 有 (1 << 14) 个 word
+  def dramLens_vivado = 1 << addrBits_vivado
+
+  /* ---------- verilator ---------- */
+
+  val addrBits_verilator = 16
+  def iromLens_verilator = 1 << addrBits_vivado // rom 有 (1 << 14) 个 word
+  def dramLens_verilator = 1 << addrBits_vivado
+
+  /* ---------- verilator ---------- */
 
   val switchBits = 24
   val buttonBits = 5
@@ -32,12 +48,14 @@ trait HasSocParameter {
   def buttonBytes = divCeil(buttonBits, 8) // 1
   def ledBytes    = divCeil(ledBits, 8) // 3
 
-  val ADDR_DIG       = 0xffff_f000
-  val ADDR_LED       = 0xffff_f060
-  val ADDR_SWITCH    = 0xffff_f070
-  val ADDR_BUTTON    = 0xffff_f078
-  val ADDR_MEM_BEGIN = 0x0000_0000
-  val ADDR_MEM_END   = 0xffff_f000
+  /* ---------- 地址空间 ---------- */
+
+  val ADDR_DIG       = 0x0_ffff_f000 // 注意一下, 这些范围是负的, java/scala 只有 int, 没有 unsigned int
+  val ADDR_LED       = 0x0_ffff_f060
+  val ADDR_SWITCH    = 0x0_ffff_f070
+  val ADDR_BUTTON    = 0x0_ffff_f078
+  val ADDR_MEM_BEGIN = 0x0_0000_0000
+  val ADDR_MEM_END   = 0x0_ffff_f000
 }
 
 import io.blackbox.CLKGen
@@ -81,41 +99,43 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     /* ---------- irom ---------- */
 
     if (ENV.isVivado) { // vivado
-
       // irom
-      val irom = Module(new DistributedSinglePortROM(iromLens, XLEN))
-      irom.io.a             := cpu_core.io.irom.addr(addrBits - 1, dataBytesBits)
+      val irom = Module(new DistributedSinglePortROM(iromLens_vivado, XLEN))
+      irom.io.a             := cpu_core.io.irom.addr(addrBits_vivado - 1, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
-
     } else { // verilator
-
-      // 这里没有用 bridge, 直接搞了
-
       val irom = Module(new IROM)
-      irom.io.a             := cpu_core.io.irom.addr(15, 2)
+      irom.io.a             := cpu_core.io.irom.addr(addrBits_verilator - 1, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
-
-      val dram = Module(new DRAM)
-      dram.io.clk           := io.fpga_clk
-      dram.io.a             := cpu_core.io.bus.addr(15, 2) // dram 是 word 寻址的
-      dram.io.d             := cpu_core.io.bus.wdata
-      dram.io.we            := cpu_core.io.bus.wen
-      cpu_core.io.bus.rdata := dram.io.spo
-      io.debug              := cpu_core.io.debug
     }
 
-    // /* ---------- bridge ---------- */
+    /* ---------- bridge ---------- */
 
-    // val addr_space_range: Seq[(BigInt, BigInt)] = Seq(
-    //   (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
-    //   (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
-    //   (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
-    //   (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
-    //   (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
-    // )
+    val addr_space_range = Seq(
+      (ADDR_MEM_BEGIN, ADDR_MEM_END) // memory
+      // (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
+      // (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
+      // (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
+      // (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
+    )
 
-    // val bridge = Module(new Bridge(addr_space_range))
-    // bridge.io.cpu := cpu_core.io.bus
+    val bridge = Module(new Bridge(addr_space_range))
+    bridge.io.cpu <> cpu_core.io.bus
+
+    // ***** dram *****
+
+    val bus0 = bridge.io.dev(0) // 第一个设备: dram
+
+    if (ENV.isVivado) {} else {
+      val dram = Module(new DRAM)
+      dram.io.clk := io.fpga_clk
+      dram.io.a   := bus0.addr(addrBits_verilator - 1, dataBytesBits) // dram 是 word 寻址的
+      dram.io.d   := bus0.wdata
+      dram.io.we  := bus0.wen
+      bus0.rdata  := dram.io.spo
+    }
+
+    io.debug := cpu_core.io.debug
 
     // /* ---------- dram ---------- */
 
