@@ -16,6 +16,7 @@ import io.trace.DRAM
 import io.device.SevenSegDigital
 import io.DebugBundle
 import io.device.BridgeDev_Bundle
+import io.device.BtnStbl
 
 /* ********** ********** Settings ********** ********** */
 
@@ -45,6 +46,8 @@ trait HasSocParameter {
   val switchBits = 24
   val buttonBits = 5
   val ledBits    = 24 // 因为有 24 个  led 灯
+
+  val btnStbl = 100 // 稳定按钮的
 
   def divCeil(x: Int, y: Int): Int = (x + y - 1) / y
 
@@ -182,7 +185,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     // ***** 5 个 按钮 *****
 
     val bus4 = bridge.io.dev(4)
-    bus4.rdata := Cat(0.U((32 - 5).W), this.io.button)
+    bus4.rdata := 0.U((32 - 5).W) ## BtnStbl(btnStbl, io.button)
 
     io.debug := cpu_core.io.debug
   }

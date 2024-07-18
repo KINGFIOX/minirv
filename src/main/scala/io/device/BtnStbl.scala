@@ -27,13 +27,15 @@ class BtnStbl(limit: Int) extends Module {
 
 }
 
-object BtnStbl extends App {
-  val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new BtnStbl(15000),
-    args = Array("--target-dir", "generated"),
-    firtoolOpts = Array(
-      "--strip-debug-info",
-      "-disable-all-randomization"
-    )
-  )
+object BtnStbl {
+  def apply(btnStbl: Int, btn_in: Bool): Bool = {
+    val btn = Module(new BtnStbl(btnStbl))
+    btn.io.btn_in := btn_in
+    btn.io.btn_out
+  }
+  def apply(btnStbl: Int, btn_in_v: UInt): UInt = {
+    val btnStable               = btn_in_v.asBools.map(apply(btnStbl, _))
+    val btnStableVec: Vec[Bool] = VecInit(btnStable)
+    btnStableVec.asUInt
+  }
 }
