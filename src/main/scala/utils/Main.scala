@@ -1,9 +1,5 @@
 import chisel3._
 
-object ENV {
-  // 定义: 是输出到 vivado, 还是 verilator
-}
-
 /** @brief
   *   .sv 文件要输出到 cdp-tests/mySoC/miniRV_SoC.v
   */

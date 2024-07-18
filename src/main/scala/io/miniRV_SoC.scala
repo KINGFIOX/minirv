@@ -15,8 +15,8 @@ import io.DebugBundle
 
 trait HasSocParameter {
   val addrBits = 14
-  def iromLens = 1 << 14 // rom 有 (1 << 14) 个 word
-  def dramLens = 1 << 14
+  def iromLens = 1 << addrBits // rom 有 (1 << 14) 个 word
+  def dramLens = 1 << addrBits
 
   val switchBits = 24
   val buttonBits = 5
@@ -24,9 +24,9 @@ trait HasSocParameter {
 
   def divCeil(x: Int, y: Int): Int = (x + y - 1) / y
 
-  def switchBytes = divCeil(switchBits, 8)
-  def buttonBytes = divCeil(buttonBits, 8)
-  def ledBytes    = divCeil(ledBits, 8)
+  def switchBytes = divCeil(switchBits, 8) // 3
+  def buttonBytes = divCeil(buttonBits, 8) // 1
+  def ledBytes    = divCeil(ledBits, 8) // 3
 
   val ADDR_DIG       = 0xffff_f000
   val ADDR_LED       = 0xffff_f060
@@ -35,6 +35,13 @@ trait HasSocParameter {
   val ADDR_MEM_BEGIN = 0x0000_0000
   val ADDR_MEM_END   = 0xffff_f000
 }
+
+object ENV {
+  // 定义: 是输出到 vivado, 还是 verilator
+  val isVivado = false
+}
+
+import io.blackbox.CLKGen
 
 class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
@@ -64,7 +71,9 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val debug = new DebugBundle
   })
 
-  withClockAndReset(io.fpga_clk, io.fpga_rst) {
+  val cpu_clk = if (ENV.isVivado) CLKGen(io.fpga_clk) else io.fpga_clk
+
+  withClockAndReset(cpu_clk, io.fpga_rst) {
 
     /* ---------- CPU Core ---------- */
 
@@ -72,17 +81,29 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
 
     /* ---------- irom ---------- */
 
-    val irom = Module(new IROM)
-    irom.io.a             := cpu_core.io.irom.addr(15, 2)
-    cpu_core.io.irom.inst := irom.io.spo
+    if (ENV.isVivado) { // vivado
 
-    val dram = Module(new DRAM)
-    dram.io.clk           := io.fpga_clk
-    dram.io.a             := cpu_core.io.bus.addr(15, 2) // dram 是 word 寻址的
-    dram.io.d             := cpu_core.io.bus.wdata
-    dram.io.we            := cpu_core.io.bus.wen
-    cpu_core.io.bus.rdata := dram.io.spo
-    io.debug              := cpu_core.io.debug
+      // irom
+      val irom = Module(new DistributedSinglePortROM(iromLens, XLEN))
+      irom.io.a             := cpu_core.io.irom.addr(addrBits - 1, dataBytesBits)
+      cpu_core.io.irom.inst := irom.io.spo
+
+    } else { // verilator
+
+      // 这里没有用 bridge, 直接搞了
+
+      val irom = Module(new IROM)
+      irom.io.a             := cpu_core.io.irom.addr(15, 2)
+      cpu_core.io.irom.inst := irom.io.spo
+
+      val dram = Module(new DRAM)
+      dram.io.clk           := io.fpga_clk
+      dram.io.a             := cpu_core.io.bus.addr(15, 2) // dram 是 word 寻址的
+      dram.io.d             := cpu_core.io.bus.wdata
+      dram.io.we            := cpu_core.io.bus.wen
+      cpu_core.io.bus.rdata := dram.io.spo
+      io.debug              := cpu_core.io.debug
+    }
 
     // /* ---------- bridge ---------- */
 
