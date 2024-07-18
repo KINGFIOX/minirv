@@ -12,38 +12,7 @@ import utils.SignExt
 import common.HasRegFileParameter
 import Log.JALlog
 import utils.ZeroExt
-
-/* ---------- ---------- csr 控制 ---------- ---------- */
-
-object CSR_op1_sel extends ChiselEnum {
-  val csr_op1_X, csr_op1_ZIMM, csr_op1_RS1 = Value
-}
-
-class CSRUBundle extends Bundle with HasCSRRegFileParameter {
-  val calc    = Output(CSRUOpType()) // 控制器
-  val op1_sel = Output(CSR_op1_sel())
-  val csr_i   = Output(UInt(NCSRbits.W)) // 这个就是 csr
-}
-
-/* ---------- ---------- alu 和他的 opN_sel 的控制 ---------- ---------- */
-
-object ALU_op1_sel extends ChiselEnum {
-  val alu_op1sel_ZERO, alu_op1sel_RS1, alu_op1sel_PC = Value
-}
-
-/** @brief
-  *   rs2 输入有 rs2 和 符号拓展立即数
-  */
-object ALU_op2_sel extends ChiselEnum {
-  val alu_op2sel_ZERO, alu_op2sel_IMM, alu_op2sel_RS2 = Value
-}
-
-class ALUOPBundle extends Bundle {
-  // 控制信号
-  val calc = Output(ALUOpType())
-  val op1  = Output(ALU_op1_sel())
-  val op2  = Output(ALU_op2_sel())
-}
+import core.IntBundle
 
 /* ---------- ---------- 控制信号线 ---------- ---------- */
 
@@ -75,6 +44,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     val ctrl = new CUControlBundle // 控制线
     val imm  = Output(UInt(XLEN.W)) // 立即数: 正常情况下 SignExt, CSR 的时候 ZeroExt
     val rf   = new CURegFileBundle
+    // val int_ = new IntBundle
   })
 
   // 最常见的还是 pc + 4
@@ -346,17 +316,17 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   /* ---------- ECALL ---------- */
 
+  when(io.inst === Instructions.ECALL) {
+    io.ctrl.csr.calc := CSRUOpType.csru_ECALL
+    io.ctrl.npc_op   := NPCOpType.npc_ECALL
+  }
+
   /* ---------- MRET ---------- */
 
-  // val csignals /* : List */ = ListLookup(
-  //   io.inst,
-  //   List(ALUOpType.alu_X, OP1_sel.op1sel_ZERO, OP2_sel.op2sel_ZERO, MemUOpType.mem_X, CSRUOpType.csru_X, WB_sel.wbsel_X, NPCOpType.npc_X, BRUOpType.bru_X), // default
-  //   Array(
-  //     // // 环境
-  //     // Instructions.ECALL -> List(ALUOpType.alu_X, OP2_X, MEN_X, REN_X, WB_X, CSRUOpType.csru_X),
-  //     // Instructions.MRET  -> List(ALUOpType.alu_X, OP2_X, MEN_X, REN_X, WB_X, CSRUOpType.csru_X)
-  //   )
-  // )
+  when(io.inst === Instructions.MRET || io.inst === Instructions.SRET || io.inst === Instructions.URET) {
+    io.ctrl.csr.calc := CSRUOpType.csru_ERET
+    io.ctrl.npc_op   := NPCOpType.npc_ERET
+  }
 
 }
 

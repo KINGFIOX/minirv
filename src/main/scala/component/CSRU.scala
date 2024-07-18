@@ -37,8 +37,18 @@ trait HasCSRConst {
   val MCAUSE = 0x342
 }
 
+object CSR_op1_sel extends ChiselEnum {
+  val csr_op1_X, csr_op1_ZIMM, csr_op1_RS1 = Value
+}
+
+class CSRUBundle extends Bundle with HasCSRRegFileParameter {
+  val calc    = Output(CSRUOpType()) // 控制器
+  val op1_sel = Output(CSR_op1_sel())
+  val csr_i   = Output(UInt(NCSRbits.W)) // 这个就是 csr
+}
+
 object CSRUOpType extends ChiselEnum {
-  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC, csru_ECALL, csru_ERET = Value
+  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC, csru_ECALL, csru_ERET, csru_INT = Value
 }
 
 /* ---------- ---------- csr ---------- ---------- */
@@ -83,8 +93,7 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
         mstatus := (mstatus & ~mstatusMask) | (wdata & mstatusMask)
       }
       is(MCAUSE.asUInt) {
-        val mcauseMask = 0x8000_0000.U(XLEN.W) // 要么发生了 ecall, 要么没有发生
-        mcause := (mcause & ~mcauseMask) | (wdata & mcauseMask)
+        mcause := wdata
       }
       is(MEPC.asUInt) {
         mepc := wdata
@@ -112,8 +121,14 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
       io.out := _read(io.csr_i)
       _write(io.csr_i, _read(io.csr_i) & ~io.op1)
     }
-    is(CSRUOpType.csru_ECALL) {}
-    is(CSRUOpType.csru_ERET) {}
+    is(CSRUOpType.csru_ECALL) {
+      mepc   := io.pc_4
+      mcause := 0x0000_000b.U /* Uecall = 8, Mecall = 11 */
+    }
+    is(CSRUOpType.csru_ERET) {
+      io.out := mepc
+    }
+    is(CSRUOpType.csru_INT) {}
   }
 
 }

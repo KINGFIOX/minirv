@@ -9,6 +9,24 @@ import chisel3.util._
 import common.HasCoreParameter
 import upickle.default
 
+object ALU_op1_sel extends ChiselEnum {
+  val alu_op1sel_ZERO, alu_op1sel_RS1, alu_op1sel_PC = Value
+}
+
+/** @brief
+  *   rs2 输入有 rs2 和 符号拓展立即数
+  */
+object ALU_op2_sel extends ChiselEnum {
+  val alu_op2sel_ZERO, alu_op2sel_IMM, alu_op2sel_RS2 = Value
+}
+
+class ALUOPBundle extends Bundle {
+  // 控制信号
+  val calc = Output(ALUOpType())
+  val op1  = Output(ALU_op1_sel())
+  val op2  = Output(ALU_op2_sel())
+}
+
 /** @brief
   *   ALU 不用管 jal 和 br 的操作, 这个是 NPC 和 BRU 的事情
   * @br
