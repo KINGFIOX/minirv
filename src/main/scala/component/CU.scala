@@ -27,8 +27,12 @@ class CUControlBundle extends Bundle {
   val wb_sel    = Output(WB_sel())
   val npc_op    = Output(NPCOpType())
   val bru_op    = Output(BRUOpType())
-  val csr       = new CSRUBundle
   val bus_arbit = Output(Bus_Arbit())
+
+  /* ---------- csr ---------- */
+
+  val csr_alu     = new CSRALUBundle
+  val csr_wb_stag = Output(CSRWbStage())
 }
 
 /** @brief
@@ -41,7 +45,7 @@ class CURegFileBundle extends Bundle with HasRegFileParameter {
 }
 
 /** @brief
-  *   解码，会生成一排控制信号。然后也会进行符号拓展操作, 输出寄存器的编号
+  *   解码，会生成一排控制信号。然后也会进行符号拓展操作, 输出寄存器的编号。这里的话: 非法指令直接略过
   */
 class CU extends Module with HasCoreParameter with HasRegFileParameter {
   val io = IO(new Bundle {
@@ -85,15 +89,9 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm            := SignExt(io.inst(31, 25) ## io.inst(11, 7))
     io.ctrl.bus_arbit := Bus_Arbit.bus_MEM
   }
-  when(io.inst === Instructions.SW) {
-    store_inst(MemUOpType.mem_SW)
-  }
-  when(io.inst === Instructions.SH) {
-    store_inst(MemUOpType.mem_SH)
-  }
-  when(io.inst === Instructions.SB) {
-    store_inst(MemUOpType.mem_SB)
-  }
+  when(io.inst === Instructions.SW) { store_inst(MemUOpType.mem_SW) }
+  when(io.inst === Instructions.SH) { store_inst(MemUOpType.mem_SH) }
+  when(io.inst === Instructions.SB) { store_inst(MemUOpType.mem_SB) }
 
   /* ---------- load ---------- */
 
@@ -108,21 +106,11 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.rf.rd_i        := io.inst(11, 7)
     io.ctrl.bus_arbit := Bus_Arbit.bus_MEM
   }
-  when(io.inst === Instructions.LB) {
-    load_inst(MemUOpType.mem_LB)
-  }
-  when(io.inst === Instructions.LBU) {
-    load_inst(MemUOpType.mem_LBU)
-  }
-  when(io.inst === Instructions.LH) {
-    load_inst(MemUOpType.mem_LH)
-  }
-  when(io.inst === Instructions.LHU) {
-    load_inst(MemUOpType.mem_LHU)
-  }
-  when(io.inst === Instructions.LW) {
-    load_inst(MemUOpType.mem_LW)
-  }
+  when(io.inst === Instructions.LB) { load_inst(MemUOpType.mem_LB) }
+  when(io.inst === Instructions.LBU) { load_inst(MemUOpType.mem_LBU) }
+  when(io.inst === Instructions.LH) { load_inst(MemUOpType.mem_LH) }
+  when(io.inst === Instructions.LHU) { load_inst(MemUOpType.mem_LHU) }
+  when(io.inst === Instructions.LW) { load_inst(MemUOpType.mem_LW) }
 
   /* ---------- R-type ---------- */
 
@@ -134,36 +122,16 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
     io.rf.rd_i       := io.inst(11, 7)
   }
-  when(io.inst === Instructions.ADD) {
-    R_inst(ALUOpType.alu_ADD)
-  }
-  when(io.inst === Instructions.SUB) {
-    R_inst(ALUOpType.alu_SUB)
-  }
-  when(io.inst === Instructions.AND) {
-    R_inst(ALUOpType.alu_AND)
-  }
-  when(io.inst === Instructions.OR) {
-    R_inst(ALUOpType.alu_OR)
-  }
-  when(io.inst === Instructions.XOR) {
-    R_inst(ALUOpType.alu_XOR)
-  }
-  when(io.inst === Instructions.SLL) {
-    R_inst(ALUOpType.alu_SLL)
-  }
-  when(io.inst === Instructions.SRL) {
-    R_inst(ALUOpType.alu_SRL)
-  }
-  when(io.inst === Instructions.SRA) {
-    R_inst(ALUOpType.alu_SRA)
-  }
-  when(io.inst === Instructions.SLT) {
-    R_inst(ALUOpType.alu_SLT)
-  }
-  when(io.inst === Instructions.SLTU) {
-    R_inst(ALUOpType.alu_SLTU)
-  }
+  when(io.inst === Instructions.ADD) { R_inst(ALUOpType.alu_ADD) }
+  when(io.inst === Instructions.SUB) { R_inst(ALUOpType.alu_SUB) }
+  when(io.inst === Instructions.AND) { R_inst(ALUOpType.alu_AND) }
+  when(io.inst === Instructions.OR) { R_inst(ALUOpType.alu_OR) }
+  when(io.inst === Instructions.XOR) { R_inst(ALUOpType.alu_XOR) }
+  when(io.inst === Instructions.SLL) { R_inst(ALUOpType.alu_SLL) }
+  when(io.inst === Instructions.SRL) { R_inst(ALUOpType.alu_SRL) }
+  when(io.inst === Instructions.SRA) { R_inst(ALUOpType.alu_SRA) }
+  when(io.inst === Instructions.SLT) { R_inst(ALUOpType.alu_SLT) }
+  when(io.inst === Instructions.SLTU) { R_inst(ALUOpType.alu_SLTU) }
 
   /* ---------- I-type ---------- */
 
@@ -175,33 +143,15 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.rf.rd_i       := io.inst(11, 7)
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
-  when(io.inst === Instructions.ADDI) {
-    Imm_inst(ALUOpType.alu_ADD)
-  }
-  when(io.inst === Instructions.ANDI) {
-    Imm_inst(ALUOpType.alu_AND)
-  }
-  when(io.inst === Instructions.ORI) {
-    Imm_inst(ALUOpType.alu_OR)
-  }
-  when(io.inst === Instructions.XORI) {
-    Imm_inst(ALUOpType.alu_XOR)
-  }
-  when(io.inst === Instructions.SLLI) {
-    Imm_inst(ALUOpType.alu_SLL)
-  }
-  when(io.inst === Instructions.SRLI) {
-    Imm_inst(ALUOpType.alu_SRL)
-  }
-  when(io.inst === Instructions.SRAI) {
-    Imm_inst(ALUOpType.alu_SRA)
-  }
-  when(io.inst === Instructions.SLTI) {
-    Imm_inst(ALUOpType.alu_SLT)
-  }
-  when(io.inst === Instructions.SLTIU) {
-    Imm_inst(ALUOpType.alu_SLTU)
-  }
+  when(io.inst === Instructions.ADDI) { Imm_inst(ALUOpType.alu_ADD) }
+  when(io.inst === Instructions.ANDI) { Imm_inst(ALUOpType.alu_AND) }
+  when(io.inst === Instructions.ORI) { Imm_inst(ALUOpType.alu_OR) }
+  when(io.inst === Instructions.XORI) { Imm_inst(ALUOpType.alu_XOR) }
+  when(io.inst === Instructions.SLLI) { Imm_inst(ALUOpType.alu_SLL) }
+  when(io.inst === Instructions.SRLI) { Imm_inst(ALUOpType.alu_SRL) }
+  when(io.inst === Instructions.SRAI) { Imm_inst(ALUOpType.alu_SRA) }
+  when(io.inst === Instructions.SLTI) { Imm_inst(ALUOpType.alu_SLT) }
+  when(io.inst === Instructions.SLTIU) { Imm_inst(ALUOpType.alu_SLTU) }
 
   /* ---------- Branch ---------- */
 
@@ -211,24 +161,12 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.npc_op := NPCOpType.npc_BR
   }
 
-  when(io.inst === Instructions.BEQ) {
-    Branch_inst(BRUOpType.bru_BEQ)
-  }
-  when(io.inst === Instructions.BNE) {
-    Branch_inst(BRUOpType.bru_BNE)
-  }
-  when(io.inst === Instructions.BGE) {
-    Branch_inst(BRUOpType.bru_BGE)
-  }
-  when(io.inst === Instructions.BGEU) {
-    Branch_inst(BRUOpType.bru_BGEU)
-  }
-  when(io.inst === Instructions.BLT) {
-    Branch_inst(BRUOpType.bru_BLT)
-  }
-  when(io.inst === Instructions.BLTU) {
-    Branch_inst(BRUOpType.bru_BLTU)
-  }
+  when(io.inst === Instructions.BEQ) { Branch_inst(BRUOpType.bru_BEQ) }
+  when(io.inst === Instructions.BNE) { Branch_inst(BRUOpType.bru_BNE) }
+  when(io.inst === Instructions.BGE) { Branch_inst(BRUOpType.bru_BGE) }
+  when(io.inst === Instructions.BGEU) { Branch_inst(BRUOpType.bru_BGEU) }
+  when(io.inst === Instructions.BLT) { Branch_inst(BRUOpType.bru_BLT) }
+  when(io.inst === Instructions.BLTU) { Branch_inst(BRUOpType.bru_BLTU) }
 
   /* ---------- JALR ---------- */
 
@@ -276,64 +214,51 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
 
-  /* ---------- CSR ---------- */
+  /* ********** CSR ********** */
 
-  io.ctrl.csr.calc    := CSRUOpType.csru_X
-  io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_X
-  io.ctrl.csr.csr_i   := 0.U
+  io.ctrl.csr_alu.calc    := CSRALUOpType.csru_X
+  io.ctrl.csr_alu.op1_sel := CSR_op1_sel.csr_op1_X
+  io.ctrl.csr_alu.csr_i   := 0.U
+  io.ctrl.csr_wb_stag     := CSRWbStage.csr_wb_X
+
+  /* ---------- CSR ALU ---------- */
 
   // csrrw rd, csr, rs1 => t=csr; csr=rs1; rd=t
-  def CSR_inst(op: CSRUOpType.Type) = {
-    io.ctrl.csr.calc    := op
-    io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_RS1
-    io.ctrl.csr.csr_i   := io.inst(31, 20)
-    io.rf.rd_i          := io.inst(11, 7)
-    io.ctrl.wb_sel      := WB_sel.wbsel_CSR
+  def CSR_inst(op: CSRALUOpType.Type) = {
+    io.ctrl.csr_alu.calc    := op
+    io.ctrl.csr_alu.op1_sel := CSR_op1_sel.csr_op1_RS1
+    io.ctrl.csr_alu.csr_i   := io.inst(31, 20)
+    io.rf.rd_i              := io.inst(11, 7)
+    io.ctrl.wb_sel          := WB_sel.wbsel_CSR
+    io.ctrl.csr_wb_stag     := CSRWbStage.csr_wb_ALU
   }
-  when(io.inst === Instructions.CSRRW) {
-    CSR_inst(CSRUOpType.csru_CSRRW)
-  }
-  when(io.inst === Instructions.CSRRS) {
-    CSR_inst(CSRUOpType.csru_CSRRS)
-  }
-  when(io.inst === Instructions.CSRRC) {
-    CSR_inst(CSRUOpType.csru_CSRRC)
-  }
+  when(io.inst === Instructions.CSRRW) { CSR_inst(CSRALUOpType.csru_CSRRW) }
+  when(io.inst === Instructions.CSRRS) { CSR_inst(CSRALUOpType.csru_CSRRS) }
+  when(io.inst === Instructions.CSRRC) { CSR_inst(CSRALUOpType.csru_CSRRC) }
 
-  /* ---------- CSRI ---------- */
+  /* ---------- CSR ALU I ---------- */
 
-  def CSRI_inst(op: CSRUOpType.Type) = {
-    io.ctrl.csr.calc    := op
-    io.ctrl.csr.op1_sel := CSR_op1_sel.csr_op1_ZIMM
-    io.ctrl.csr.csr_i   := io.inst(31, 20)
-    io.imm              := ZeroExt(io.inst(19, 15))
-    io.rf.rd_i          := io.inst(11, 7)
-    io.ctrl.wb_sel      := WB_sel.wbsel_CSR
+  def CSRI_inst(op: CSRALUOpType.Type) = {
+    io.ctrl.csr_alu.calc    := op
+    io.ctrl.csr_alu.op1_sel := CSR_op1_sel.csr_op1_ZIMM
+    io.ctrl.csr_alu.csr_i   := io.inst(31, 20)
+    io.imm                  := ZeroExt(io.inst(19, 15))
+    io.rf.rd_i              := io.inst(11, 7)
+    io.ctrl.wb_sel          := WB_sel.wbsel_CSR
+    io.ctrl.csr_wb_stag     := CSRWbStage.csr_wb_ALU
   }
-  when(io.inst === Instructions.CSRRWI) {
-    CSRI_inst(CSRUOpType.csru_CSRRW)
-  }
-  when(io.inst === Instructions.CSRRSI) {
-    CSRI_inst(CSRUOpType.csru_CSRRS)
-  }
-  when(io.inst === Instructions.CSRRCI) {
-    CSRI_inst(CSRUOpType.csru_CSRRC)
-  }
-
-  // 线与
+  when(io.inst === Instructions.CSRRWI) { CSRI_inst(CSRALUOpType.csru_CSRRW) }
+  when(io.inst === Instructions.CSRRSI) { CSRI_inst(CSRALUOpType.csru_CSRRS) }
+  when(io.inst === Instructions.CSRRCI) { CSRI_inst(CSRALUOpType.csru_CSRRC) }
 
   /* ---------- ECALL ---------- */
 
-  when(io.inst === Instructions.ECALL) {
-    io.ctrl.csr.calc := CSRUOpType.csru_ECALL
-    io.ctrl.npc_op   := NPCOpType.npc_ECALL
-  }
+  when(io.inst === Instructions.ECALL) { io.ctrl.csr_wb_stag := CSRWbStage.csr_wb_ECALL }
 
-  /* ---------- MRET ---------- */
+  // /* ---------- MRET ---------- */
 
   when(io.inst === Instructions.MRET || io.inst === Instructions.SRET || io.inst === Instructions.URET) {
-    io.ctrl.csr.calc := CSRUOpType.csru_ERET
-    io.ctrl.npc_op   := NPCOpType.npc_ERET
+    io.ctrl.npc_op := NPCOpType.npc_ERET
   }
 
 }

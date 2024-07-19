@@ -17,6 +17,7 @@ import io.device.SevenSegDigital
 import io.DebugBundle
 import io.device.BridgeDev_Bundle
 import io.device.BtnStbl
+import io.device.PosEdge
 
 /* ********** ********** Settings ********** ********** */
 
@@ -185,7 +186,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     // ***** 5 个 按钮 *****
 
     val bus4 = bridge.io.dev(4)
-    bus4.rdata := 0.U((32 - 5).W) ## BtnStbl(btnStbl, io.button)
+    bus4.rdata := PosEdge(0.U((32 - 5).W) ## BtnStbl(btnStbl, io.button))
 
     io.debug := cpu_core.io.debug
   }

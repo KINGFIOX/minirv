@@ -12,7 +12,7 @@ object WB_sel extends ChiselEnum {
 /** @brief
   *   寄存器堆, 但是其实不是一个 chisel 的 Module
   */
-class RegFile extends HasRegFileParameter with HasCoreParameter {
+class RegFile extends  HasCoreParameter with  HasRegFileParameter {
   private val _rf                   = Mem(NRReg, UInt(XLEN.W))
   def read(addr: UInt): UInt        = Mux(addr === 0.U, 0.U, _rf(addr))
   def write(addr: UInt, data: UInt) = { _rf(addr) := Mux(addr === 0.U, 0.U, data(XLEN - 1, 0)) }

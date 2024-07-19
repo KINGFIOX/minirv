@@ -11,17 +11,18 @@ import io.HasSocParameter
   */
 class IntPollU extends Module with HasCoreParameter with HasSocParameter {
   val io = IO(new Bundle {
-    val bus = new BusBundle
-    val no  = Output(UInt(XLEN.W)) // 中断的编号
-    // 相应的, 我可以发出中断信号
+    val bus   = new BusBundle
+    val en    = Input(Bool())
+    val no    = Output(UInt(XLEN.W)) // 中断的编号
+    val valid = Output(Bool())
   })
 
   io.bus.wen   := 0.U // 只能是 disable
   io.bus.wdata := 0.U // 只能是 0
-  io.bus.addr  := ADDR_BUTTON.asSInt.asUInt
+  io.bus.addr  := ADDR_BUTTON.asSInt.asUInt // 轮询的地址
 
   io.no := io.bus.rdata
 
-  // TODO 生成控制信号
+  io.valid := io.bus.rdata =/= 0.U && io.en
 
 }
