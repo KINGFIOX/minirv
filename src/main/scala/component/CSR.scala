@@ -1,7 +1,3 @@
-/** @brief
-  *   放到 EXE 阶段
-  */
-
 package component
 
 import chisel3._
@@ -35,35 +31,43 @@ trait HasCSRConst {
     */
 
   val MCAUSE = 0x342
+
 }
+
+object MCAUSE_CONSTS {
+  val ECALL = 0x0000_000b
+  val INT   = 0x8000_000b
+}
+
+/* ---------- ---------- csr ALU ---------- ---------- */
 
 object CSR_op1_sel extends ChiselEnum {
   val csr_op1_X, csr_op1_ZIMM, csr_op1_RS1 = Value
 }
 
-class CSRUBundle extends Bundle with HasCSRRegFileParameter {
-  val calc    = Output(CSRUOpType()) // 控制器
+/** @brief
+  *   csr alu bundle
+  */
+class CSRALUBundle extends Bundle with HasCSRRegFileParameter {
+  val calc    = Output(CSRALUOpType()) // 控制 计算器
   val op1_sel = Output(CSR_op1_sel())
-  val csr_i   = Output(UInt(NCSRbits.W)) // 这个就是 csr
+  val csr_i   = Output(UInt(NCSRbits.W)) // 第 csr_i 个 csr 寄存器
 }
 
-object CSRUOpType extends ChiselEnum {
-  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC, csru_ECALL, csru_ERET, csru_INT = Value
+object CSRALUOpType extends ChiselEnum {
+  val csru_X, csru_CSRRW, csru_CSRRS, csru_CSRRC = Value
 }
-
-/* ---------- ---------- csr ---------- ---------- */
 
 /** @brief
-  *   用于 CSR 操作的模块。 注意, 我们这里的 cpu 没有抵御风险的能力, 如果出现了非法访问的情况就直接挂掉, 只能按下复位键
+  *   wb 阶段, 应该对 csr 怎么操作
   */
-class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with HasCSRConst {
-  val io = IO(new Bundle {
-    val calc  = Input(CSRUOpType())
-    val csr_i = Input(UInt(NCSRbits.W))
-    val op1   = Input(UInt(XLEN.W)) // Mux(控制信号 , zimm, rs1)
-    val pc_4  = Input(UInt(XLEN.W)) // 用于 MEPC
-    val out   = Output(UInt(XLEN.W)) // 读取出来 CSR 的值, rd 由 controller 控制
-  })
+object CSRWbStage extends ChiselEnum {
+  val csr_wb_X, csr_wb_ALU, csr_wb_ECALL = Value
+}
+
+/* ---------- ---------- csr 寄存器 ---------- ---------- */
+
+class CSRRegFile extends HasCoreParameter with HasCSRRegFileParameter with HasCSRConst {
 
   /* ---------- 定义一些数据结构 ---------- */
 
@@ -71,7 +75,7 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
   private val mcause  = RegInit(0.U(XLEN.W)) // 0x8000_000b 或 0x0
   private val mepc    = RegInit(0.U(XLEN.W))
 
-  private def _read(csr_i: UInt): UInt = {
+  def read(csr_i: UInt): UInt = {
     printf("accessing csr=%x\n", csr_i)
     // 对应的 csr 寄存器
     val csr = MuxCase(
@@ -85,7 +89,7 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
     csr
   }
 
-  private def _write(csr_i: UInt, wdata: UInt) = {
+  def write(csr_i: UInt, wdata: UInt) = {
     printf("accessing csr=%x\n", csr_i)
     switch(csr_i) {
       is(MSTATUS.asUInt) {
@@ -101,41 +105,50 @@ class CSRU extends Module with HasCoreParameter with HasCSRRegFileParameter with
     }
   }
 
+}
+
+/* ---------- ---------- csr ALU ---------- ---------- */
+
+/** @brief
+  *   这个是 csr 寄存器的 ALU, 只会用于计算, 不会发生读写。这个计算过程发生在 EXE 阶段
+  */
+class CSRALU extends Module with HasCoreParameter with HasCSRRegFileParameter with HasCSRConst {
+  val io = IO(new Bundle {
+    val calc  = Input(CSRALUOpType())
+    val csr_v = Input(UInt(XLEN.W))
+    val op1   = Input(UInt(XLEN.W)) // Mux(控制信号 , zimm, rs1)
+    val orig  = Output(UInt(XLEN.W)) // 这个是 csr 原本的值
+    val after = Output(UInt(XLEN.W)) // 计算结果
+  })
+
   /* ---------- default ---------- */
 
-  io.out := 0.U
+  io.after := 0.U
+  io.orig  := 0.U
 
   /* ---------- switch ---------- */
 
   switch(io.calc) {
-    is(CSRUOpType.csru_X) { /* 啥也不干 */ }
-    is(CSRUOpType.csru_CSRRW) {
-      io.out := _read(io.csr_i)
-      _write(io.csr_i, io.op1)
+    is(CSRALUOpType.csru_X) { /* 啥也不干 */ }
+    is(CSRALUOpType.csru_CSRRW) {
+      io.after := io.op1
+      io.orig  := io.csr_v
     }
-    is(CSRUOpType.csru_CSRRS) {
-      io.out := _read(io.csr_i)
-      _write(io.csr_i, _read(io.csr_i) | io.op1)
+    is(CSRALUOpType.csru_CSRRS) {
+      io.orig  := io.csr_v
+      io.after := io.csr_v | io.op1
     }
-    is(CSRUOpType.csru_CSRRC) {
-      io.out := _read(io.csr_i)
-      _write(io.csr_i, _read(io.csr_i) & ~io.op1)
+    is(CSRALUOpType.csru_CSRRC) {
+      io.orig  := io.csr_v
+      io.after := io.csr_v & ~io.op1
     }
-    is(CSRUOpType.csru_ECALL) {
-      mepc   := io.pc_4
-      mcause := 0x0000_000b.U /* Uecall = 8, Mecall = 11 */
-    }
-    is(CSRUOpType.csru_ERET) {
-      io.out := mepc
-    }
-    is(CSRUOpType.csru_INT) {}
   }
 
 }
 
-object CSRU extends App {
+object CSRALU extends App {
   val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new CSRU,
+    new CSRALU,
     args = Array("--target-dir", "generated"),
     firtoolOpts = Array(
       "--strip-debug-info",
