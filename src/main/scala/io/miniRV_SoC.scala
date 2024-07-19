@@ -62,7 +62,7 @@ trait HasSocParameter {
   val ADDR_SWITCH    = 0x0_ffff_f070
   val ADDR_BUTTON    = 0x0_ffff_f078
   val ADDR_MEM_BEGIN = 0x0_0000_0000
-  val ADDR_MEM_END   = 0x0_ffff_f000
+  val ADDR_MEM_END   = 0x0_ffff_f000 // memory map io
 }
 
 /* ********** ********** 外设设置 ********** ********** */
