@@ -6,7 +6,6 @@ import hitsz.io.miniRV_SoC
 /** @brief
   *   .sv 文件要输出到 cdp-tests/mySoC/miniRV_SoC.v
   */
-
 object Main {
   private def emitVerilog(path: String, mod: => RawModule) = {
     val code = circt.stage.ChiselStage.emitSystemVerilog(

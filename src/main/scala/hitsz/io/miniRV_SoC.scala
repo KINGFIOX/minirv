@@ -11,7 +11,7 @@ import hitsz.io.blackbox.PLL
 import hitsz.io.blackbox.CLKGen
 import hitsz.core.CPUCore
 import hitsz.io.device.Bridge
-import hitsz.io.blackbox.IROM
+import hitsz.io.trace.IROM
 import hitsz.io.trace.DRAM
 import hitsz.io.device.SevenSegDigital
 import hitsz.io.DebugBundle
@@ -42,7 +42,15 @@ trait HasSocParameter {
   def iromLens_verilator = 1 << addrBits_vivado // rom 有 (1 << 14) 个 word
   def dramLens_verilator = 1 << addrBits_vivado
 
-  /* ---------- verilator ---------- */
+  /* ---------- irom ---------- */
+
+  val USER_BEGIN = 0
+  def USER_LEN   = if (ENV.isVivado) iromLens_vivado else iromLens_verilator
+
+  val KERNEL_BEGIN = 0x0_1c09_0000
+  def KERNEL_LEN   = if (ENV.isVivado) iromLens_vivado else iromLens_verilator
+
+  /* ---------- ---------- */
 
   val switchBits = 24
   val buttonBits = 5
@@ -141,11 +149,10 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
       // vivado 就是用 interleaved dram
     } else {
       val dram = Module(new DRAM)
-      dram.io.clk := io.fpga_clk
-      dram.io.a   := bus0.addr(addrBits_verilator - 1, dataBytesBits) // dram 是 word 寻址的
-      dram.io.d   := bus0.wdata
-      dram.io.we  := bus0.wen
-      bus0.rdata  := dram.io.spo
+      dram.io.a  := bus0.addr(addrBits_verilator - 1, dataBytesBits) // dram 是 word 寻址的
+      dram.io.d  := bus0.wdata
+      dram.io.we := bus0.wen
+      bus0.rdata := dram.io.spo
     }
 
     // ***** digit *****

@@ -8,7 +8,7 @@ import chisel3._
 import chisel3.util._
 import hitsz.common.HasCoreParameter
 import hitsz.common.HasECALLParameter
-import hitsz.io.blackbox.InstROMBundle
+import hitsz.io.trace.InstROMBundle
 
 /** @brief
   *   IF -> ID 之间连接的线

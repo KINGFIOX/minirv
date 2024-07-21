@@ -14,7 +14,7 @@ import hitsz.component.ALU_op2_sel
 import hitsz.component.WB_sel
 import hitsz.component.BRU
 
-import hitsz.io.blackbox.InstROMBundle
+import hitsz.io.trace.InstROMBundle
 import hitsz.io.DebugBundle
 import hitsz.component.CSR_op1_sel
 import hitsz.component.IntPollU
