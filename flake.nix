@@ -20,17 +20,17 @@
             temurin-bin-17
             metals
             mill
-            metals
             bloop
             # c++
             # rocmPackages.llvm.clang-tools-extra
             verilator
             bear
-	    cmake
-	    ninja
+            cmake
+            ninja
             # utils
             qemu
-            (with pkgsCross.riscv64; [ glib.stdenv.cc buildPackages.gdb ])
+            (with pkgsCross.riscv64; [ buildPackages.gcc ])
+            (with pkgsCross.riscv32; [ buildPackages.gcc ])
             yosys
             verible
           ];
@@ -39,7 +39,7 @@
             export C_INCLUDE_PATH=${verilatorIncludePath}:$C_INCLUDE_PATH
             export CPLUS_INCLUDE_PATH=${verilatorIncludePath}:$CPLUS_INCLUDE_PATH
             export MAKEFLAGS="-j$(nproc)"
-	    export VERILATOR_HOME=${pkgs.verilator}
+            export VERILATOR_HOME=${pkgs.verilator}
           '';
         };
       });
