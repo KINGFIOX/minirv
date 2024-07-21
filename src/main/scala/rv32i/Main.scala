@@ -42,7 +42,7 @@ object Main {
         return
     }
 
-    val cpu = new rvemu(user, kernel)
+    val cpu = new RVEMU(user, kernel)
 
     println(s"sp=${cpu.regs(2)}")
 

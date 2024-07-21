@@ -104,10 +104,10 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
 
     /* ---------- debug ---------- */
 
-    val debug = new DebugBundle
+    val dbg = new DebugBundle
   })
 
-  val cpu_clk = if (ENV.isVivado) CLKGen(io.fpga_clk) else io.fpga_clk
+  private val cpu_clk = if (ENV.isVivado) CLKGen(io.fpga_clk) else io.fpga_clk
 
   withClockAndReset(cpu_clk, io.fpga_rst) {
 
@@ -195,7 +195,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val bus4 = bridge.io.dev(4)
     bus4.rdata := PosEdge(0.U((32 - 5).W) ## BtnStbl(btnStbl, io.button))
 
-    io.debug := cpu_core.io.debug
+    io.dbg := cpu_core.io.debug
   }
 }
 

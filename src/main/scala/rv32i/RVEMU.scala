@@ -1,6 +1,6 @@
 package rv32i
 
-class RVemu(user: Array[Byte], kernel: Array[Byte]) {
+class RVEMU(user: Array[Byte], kernel: Array[Byte]) {
 
   /* ---------- 属性 ---------- */
 
