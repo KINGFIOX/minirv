@@ -1,0 +1,66 @@
+
+trap_handle:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <HANDLE>:
+   0:	30005073          	csrwi	mstatus,0
+   4:	fe810113          	addi	sp,sp,-24
+   8:	00812a23          	sw	s0,20(sp)
+   c:	00512823          	sw	t0,16(sp)
+  10:	00612623          	sw	t1,12(sp)
+  14:	00712423          	sw	t2,8(sp)
+  18:	01c12223          	sw	t3,4(sp)
+  1c:	01d12023          	sw	t4,0(sp)
+  20:	00b00293          	li	t0,11
+  24:	80000337          	lui	t1,0x80000
+  28:	00b30313          	addi	t1,t1,11 # 8000000b <__global_pointer$+0x7fffe80b>
+  2c:	342053f3          	csrrwi	t2,mcause,0
+  30:	00538663          	beq	t2,t0,3c <ECALL_HANDLER>
+  34:	00638c63          	beq	t2,t1,4c <EXTERNAL_INTR_HANDLER>
+  38:	0540006f          	j	8c <OTHER_TRAPS_HANDLER>
+
+0000003c <ECALL_HANDLER>:
+  3c:	fffff437          	lui	s0,0xfffff
+  40:	06a42023          	sw	a0,96(s0) # fffff060 <__global_pointer$+0xffffd860>
+  44:	00a42023          	sw	a0,0(s0)
+  48:	0580006f          	j	a0 <TRAP_RET>
+
+0000004c <EXTERNAL_INTR_HANDLER>:
+  4c:	fffff437          	lui	s0,0xfffff
+  50:	111112b7          	lui	t0,0x11111
+  54:	11128293          	addi	t0,t0,273 # 11111111 <__global_pointer$+0x1110f911>
+  58:	11111337          	lui	t1,0x11111
+  5c:	11130313          	addi	t1,t1,273 # 11111111 <__global_pointer$+0x1110f911>
+  60:	9999a3b7          	lui	t2,0x9999a
+  64:	99938393          	addi	t2,t2,-1639 # 99999999 <__global_pointer$+0x99998199>
+  68:	00f00e93          	li	t4,15
+  6c:	06542023          	sw	t0,96(s0) # fffff060 <__global_pointer$+0xffffd860>
+  70:	00542023          	sw	t0,0(s0)
+  74:	00000e13          	li	t3,0
+
+00000078 <.DELAY>:
+  78:	001e0e13          	addi	t3,t3,1
+  7c:	ffde4ee3          	blt	t3,t4,78 <.DELAY>
+  80:	006282b3          	add	t0,t0,t1
+  84:	fe5394e3          	bne	t2,t0,6c <EXTERNAL_INTR_HANDLER+0x20>
+  88:	0180006f          	j	a0 <TRAP_RET>
+
+0000008c <OTHER_TRAPS_HANDLER>:
+  8c:	fffff437          	lui	s0,0xfffff
+  90:	fff06293          	ori	t0,zero,-1
+  94:	06542023          	sw	t0,96(s0) # fffff060 <__global_pointer$+0xffffd860>
+  98:	00542023          	sw	t0,0(s0)
+  9c:	0040006f          	j	a0 <TRAP_RET>
+
+000000a0 <TRAP_RET>:
+  a0:	01412403          	lw	s0,20(sp)
+  a4:	01012283          	lw	t0,16(sp)
+  a8:	00c12303          	lw	t1,12(sp)
+  ac:	00812383          	lw	t2,8(sp)
+  b0:	00412e03          	lw	t3,4(sp)
+  b4:	00012e83          	lw	t4,0(sp)
+  b8:	01810113          	addi	sp,sp,24
+  bc:	30045073          	csrwi	mstatus,8
+  c0:	00200073          	uret
