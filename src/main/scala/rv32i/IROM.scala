@@ -12,6 +12,7 @@ package rv32i
   */
 class IROM(user: Array[Byte], USER_BEGIN: Int, kernel: Array[Byte], KERNEL_BEGIN: Int) {
   def fetch(addr: Int): Int = {
+    if (addr == 0x270) { throw new IllegalArgumentException("Invalid address: 0x270") }
     if (addr >= USER_BEGIN && addr < KERNEL_BEGIN) {
       val index = addr - USER_BEGIN
       (user(index) & 0x0_ff) | ((user(index + 1) & 0x0_ff) << 8) | ((user(index + 2) & 0x0_ff) << 16) | ((user(index + 3) & 0x0_ff) << 24)

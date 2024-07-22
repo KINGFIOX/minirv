@@ -142,8 +142,8 @@ class RVEMU(user: Array[Byte], kernel: Array[Byte]) {
           case _ => return false
         }
       case 0x17 => // 0b001_0111 -> auipc
-        val imm = (inst & 0xfffff000) >> 12
-        regs(rd) = pc + (imm << 12)
+        val imm = inst & 0xfffff000
+        regs(rd) = pc - 4 + imm
       case 0x33 => // 0b011_0011 -> alu
         val shamt = regs(rs2) & 0x3f
         (funct3, funct7) match {
