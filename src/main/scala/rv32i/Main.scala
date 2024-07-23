@@ -46,7 +46,16 @@ object Main {
 
     println(s"sp=${cpu.regs(2)}")
 
-    while (cpu.step()._1) {
+    while (true) {
+
+      val cur_pc = cpu.pc
+
+      assert(cur_pc != 0x270)
+
+      if (cpu.step()._1 == false) return
+
+      if (cur_pc == 0x26c) return
+
       // // 1. Fetch.
       // val inst = cpu.fetch()
 

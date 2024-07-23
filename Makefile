@@ -5,6 +5,9 @@ bin: fib.c
 	riscv32-unknown-linux-gnu-gcc -Wl,-Ttext=0x0 -nostdlib -march=rv32e -mabi=ilp32e -o fib fib.s
 	riscv32-unknown-linux-gnu-objcopy -O binary fib fib.bin
 
+emu:
+	sbt "runMain rv32i.Main"
+
 dump: bin
 	riscv32-unknown-linux-gnu-objdump -d fib > fib.dump
 	riscv32-unknown-linux-gnu-objdump -d trap_handle > trap_handle.dump

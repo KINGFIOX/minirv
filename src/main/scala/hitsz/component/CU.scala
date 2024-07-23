@@ -13,21 +13,15 @@ import hitsz.common.HasRegFileParameter
 import hitsz.Log.JALlog
 import hitsz.utils.ZeroExt
 
-/* ---------- ---------- 总线选择 ---------- ---------- */
-object Bus_Arbit extends ChiselEnum {
-  val bus_X /* 无效状态 */, bus_IPoll /* 默认是 int poll */, bus_MEM = Value
-}
-
 /* ---------- ---------- 控制信号线 ---------- ---------- */
 
 class CUControlBundle extends Bundle {
   // 控制信号
-  val alu       = new ALUOPBundle
-  val op_mem    = Output(MemUOpType())
-  val wb_sel    = Output(WB_sel())
-  val npc_op    = Output(NPCOpType())
-  val bru_op    = Output(BRUOpType())
-  val bus_arbit = Output(Bus_Arbit())
+  val alu    = new ALUOPBundle
+  val op_mem = Output(MemUOpType())
+  val wb_sel = Output(WB_sel())
+  val npc_op = Output(NPCOpType())
+  val bru_op = Output(BRUOpType())
 
   /* ---------- csr ---------- */
 
@@ -62,13 +56,12 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   /* ---------- default ---------- */
 
   // 控制信号
-  io.ctrl.alu.calc  := ALUOpType.alu_X
-  io.ctrl.alu.op1   := ALU_op1_sel.alu_op1sel_ZERO
-  io.ctrl.alu.op2   := ALU_op2_sel.alu_op2sel_ZERO
-  io.ctrl.op_mem    := MemUOpType.mem_X
-  io.ctrl.wb_sel    := WB_sel.wbsel_X
-  io.ctrl.bru_op    := BRUOpType.bru_X
-  io.ctrl.bus_arbit := Bus_Arbit.bus_IPoll // 默认 int poll
+  io.ctrl.alu.calc := ALUOpType.alu_X
+  io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_ZERO
+  io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_ZERO
+  io.ctrl.op_mem   := MemUOpType.mem_X
+  io.ctrl.wb_sel   := WB_sel.wbsel_X
+  io.ctrl.bru_op   := BRUOpType.bru_X
 
   // 立即数
   io.imm := 0.U
@@ -82,12 +75,11 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   // sw rs2, offset(rs1) 存的是 rs2, 但是计算的是 op1=rs1 和 op2=offset
   private def store_inst(op: MemUOpType.Type) = {
-    io.ctrl.alu.calc  := ALUOpType.alu_ADD // rs1 + sext(offset)
-    io.ctrl.alu.op1   := ALU_op1_sel.alu_op1sel_RS1 // rs1
-    io.ctrl.alu.op2   := ALU_op2_sel.alu_op2sel_IMM // offset
-    io.ctrl.op_mem    := op
-    io.imm            := SignExt(io.inst(31, 25) ## io.inst(11, 7))
-    io.ctrl.bus_arbit := Bus_Arbit.bus_MEM
+    io.ctrl.alu.calc := ALUOpType.alu_ADD // rs1 + sext(offset)
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1 // rs1
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM // offset
+    io.ctrl.op_mem   := op
+    io.imm           := SignExt(io.inst(31, 25) ## io.inst(11, 7))
   }
   when(io.inst === Instructions.SW) { store_inst(MemUOpType.mem_SW) }
   when(io.inst === Instructions.SH) { store_inst(MemUOpType.mem_SH) }
@@ -97,14 +89,13 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   // lw rd, offset(rs1)
   private def load_inst(op: MemUOpType.Type) = {
-    io.ctrl.alu.calc  := ALUOpType.alu_ADD // rs1 + sext(offset)
-    io.ctrl.alu.op1   := ALU_op1_sel.alu_op1sel_RS1 // rs1
-    io.ctrl.alu.op2   := ALU_op2_sel.alu_op2sel_IMM // offset
-    io.imm            := SignExt(io.inst(31, 20))
-    io.ctrl.op_mem    := op
-    io.ctrl.wb_sel    := WB_sel.wbsel_MEM
-    io.rf.rd_i        := io.inst(11, 7)
-    io.ctrl.bus_arbit := Bus_Arbit.bus_MEM
+    io.ctrl.alu.calc := ALUOpType.alu_ADD // rs1 + sext(offset)
+    io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1 // rs1
+    io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM // offset
+    io.imm           := SignExt(io.inst(31, 20))
+    io.ctrl.op_mem   := op
+    io.ctrl.wb_sel   := WB_sel.wbsel_MEM
+    io.rf.rd_i       := io.inst(11, 7)
   }
   when(io.inst === Instructions.LB) { load_inst(MemUOpType.mem_LB) }
   when(io.inst === Instructions.LBU) { load_inst(MemUOpType.mem_LBU) }

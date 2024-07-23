@@ -18,7 +18,6 @@ import hitsz.io.trace.InstROMBundle
 import hitsz.io.DebugBundle
 import hitsz.component.CSR_op1_sel
 import hitsz.component.IntPollU
-import hitsz.component.Bus_Arbit
 import hitsz.component.CSRALU
 import hitsz.component.CSRRegFile
 import hitsz.component.CSRWbStage
@@ -120,11 +119,6 @@ class CPUCore extends Module with HasCoreParameter with HasCSRConst {
 
   /* ---------- MEM ---------- */
 
-  // ***** interrupt poll *****
-  val intpollu_ = Module(new IntPollU)
-  intpollu_.io.bus.rdata := io.bus.rdata
-  intpollu_.io.en        := false.B
-
   // ***** mem *****
   val mem_ = Module(new MemU)
   mem_.io.in.op     := cu_.io.ctrl.op_mem
@@ -135,24 +129,9 @@ class CPUCore extends Module with HasCoreParameter with HasCSRConst {
   // ----- bus -----
 
   // default
-  io.bus.addr  := 0.U
-  io.bus.wen   := 0.U
-  io.bus.wdata := 0.U
-
-  switch(cu_.io.ctrl.bus_arbit) {
-    is(Bus_Arbit.bus_X) { /* 啥也不干 */ }
-    is(Bus_Arbit.bus_IPoll) {
-      when(csr_rf_.read(MSTATUS.U) =/= 0.U) { // 中断使能
-        io.bus.addr     := intpollu_.io.bus.addr
-        intpollu_.io.en := true.B
-      }
-    }
-    is(Bus_Arbit.bus_MEM) {
-      io.bus.addr  := mem_.io.bus.addr
-      io.bus.wen   := mem_.io.bus.wen
-      io.bus.wdata := mem_.io.bus.wdata
-    }
-  }
+  io.bus.addr  := mem_.io.bus.addr
+  io.bus.wen   := mem_.io.bus.wen
+  io.bus.wdata := mem_.io.bus.wdata
 
   /* ---------- WB ---------- */
 
@@ -163,26 +142,22 @@ class CPUCore extends Module with HasCoreParameter with HasCSRConst {
 
   csr_rf_.write(MCAUSE.U, 0.U) // mcause 大多数情况下是 0
 
-  when(intpollu_.io.valid) { // 中断
-    regfile_.write(MEPC.U, pc_4 - 4.U)
-    csr_rf_.write(MCAUSE.U, ZeroExt(MCAUSE_CONSTS.INT))
-  }.otherwise {
-    switch(cu_.io.ctrl.wb_sel) {
-      is(WB_sel.wbsel_X) { /* 啥也不干 */ }
-      is(WB_sel.wbsel_ALU) { regfile_.write(cu_.io.rf.rd_i, alu_.io.out) }
-      is(WB_sel.wbsel_CSR) { regfile_.write(cu_.io.rf.rd_i, csru_alu_.io.orig) }
-      is(WB_sel.wbsel_MEM) { regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata) }
-      is(WB_sel.wbsel_PC4) { regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4) }
-    }
-    // ***** csr reg file *****
-    switch(cu_.io.ctrl.csr_wb_stag) {
-      // TODO 例外: 注意, 这里可能会出现非法访问的现象
-      is(CSRWbStage.csr_wb_X) { /* 啥也不干 */ }
-      is(CSRWbStage.csr_wb_ALU) { csr_rf_.write(cu_.io.ctrl.csr_alu.csr_i, csru_alu_.io.after) }
-      is(CSRWbStage.csr_wb_ECALL) {
-        csr_rf_.write(MEPC.U, if_.io.out.pc_4) // mepc 下一条指令的地址
-        csr_rf_.write(MCAUSE.U, MCAUSE_CONSTS.ECALL.U) //
-      }
+  switch(cu_.io.ctrl.wb_sel) {
+    is(WB_sel.wbsel_X) { /* 啥也不干 */ }
+    is(WB_sel.wbsel_ALU) { regfile_.write(cu_.io.rf.rd_i, alu_.io.out) }
+    is(WB_sel.wbsel_CSR) { regfile_.write(cu_.io.rf.rd_i, csru_alu_.io.orig) }
+    is(WB_sel.wbsel_MEM) { regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata) }
+    is(WB_sel.wbsel_PC4) { regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4) }
+  }
+
+  // ***** csr reg file *****
+  switch(cu_.io.ctrl.csr_wb_stag) {
+    // TODO 例外: 注意, 这里可能会出现非法访问的现象
+    is(CSRWbStage.csr_wb_X) { /* 啥也不干 */ }
+    is(CSRWbStage.csr_wb_ALU) { csr_rf_.write(cu_.io.ctrl.csr_alu.csr_i, csru_alu_.io.after) }
+    is(CSRWbStage.csr_wb_ECALL) {
+      csr_rf_.write(MEPC.U, if_.io.out.pc_4) // mepc 下一条指令的地址
+      csr_rf_.write(MCAUSE.U, MCAUSE_CONSTS.ECALL.U) //
     }
   }
 

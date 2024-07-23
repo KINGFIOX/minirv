@@ -78,15 +78,14 @@ trait HasSocParameter {
 
 import hitsz.io.blackbox.CLKGen
 
-class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
+class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
-  val io = FlatIO(new Bundle {
-    val fpga_clk = Input(Clock())
-    val fpga_rst = Input(Bool())
+  val io = IO(new Bundle {
 
     // /* ---------- 外设 ---------- */
 
-    val swit   = Input(UInt(switchBits.W)) // 拨码开关
+    val swit = Input(UInt(switchBits.W)) // 拨码开关
+
     val button = Input(UInt(buttonBits.W)) // 中间 5 个按钮
 
     // // 8 个数码管
@@ -107,9 +106,11 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val dbg = new DebugBundle
   })
 
-  private val cpu_clk = if (ENV.isVivado) CLKGen(io.fpga_clk) else io.fpga_clk
+  val clk = this.clock
 
-  withClockAndReset(cpu_clk, io.fpga_rst) {
+  private val cpu_clk = if (ENV.isVivado) CLKGen(clk) else clk
+
+  withClock(cpu_clk) {
 
     /* ---------- CPU Core ---------- */
 
@@ -134,8 +135,7 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
       (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
       (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
       (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
-      (ADDR_SWITCH, ADDR_SWITCH + switchBytes), // 24 个 switch
-      (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
+      (ADDR_SWITCH, ADDR_SWITCH + switchBytes) // 24 个 switch
     )
 
     val bridge = Module(new Bridge(addr_space_range))
@@ -190,10 +190,9 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
     val bus3 = bridge.io.dev(3)
     bus3.rdata := Cat(0.U((32 - 24).W), io.swit)
 
-    // ***** 5 个 按钮 *****
+    // ***** 5 个 btn *****
 
-    val bus4 = bridge.io.dev(4)
-    bus4.rdata := PosEdge(0.U((32 - 5).W) ## BtnStbl(btnStbl, io.button))
+    /* ---------- debug ---------- */
 
     io.dbg := cpu_core.io.debug
   }

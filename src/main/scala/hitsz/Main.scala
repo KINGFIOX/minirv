@@ -4,7 +4,6 @@ import chisel3._
 import hitsz.io.miniRV_SoC
 
 /** @brief
-  *   .sv 文件要输出到 cdp-tests/mySoC/miniRV_SoC.v
   */
 object Main {
   private def emitVerilog(path: String, mod: => RawModule) = {
@@ -19,7 +18,7 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    emitVerilog("cdp-tests/mySoC/miniRV_SoC.v", new miniRV_SoC)
+    emitVerilog("generated/miniRV_SoC.v", new miniRV_SoC)
     // emitVerilog("vivado/proj_pipeline.srcs/sources_1/new/SoC.v", new SoC)
   }
 }
