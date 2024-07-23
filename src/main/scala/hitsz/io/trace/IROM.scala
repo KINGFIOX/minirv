@@ -5,6 +5,8 @@ import chisel3.util._
 import hitsz.common.HasCoreParameter
 import chisel3.util.experimental.loadMemoryFromFile
 import hitsz.io.HasSocParameter
+import firrtl.annotations.MemoryLoadFileType
+import chisel3.util.experimental.loadMemoryFromFileInline
 
 class InstROMBundle extends Bundle with HasCoreParameter {
   val addr = Input(UInt(XLEN.W))
@@ -13,7 +15,7 @@ class InstROMBundle extends Bundle with HasCoreParameter {
 
 /** @brief
   */
-class IROM extends Module with HasCoreParameter with HasSocParameter {
+class IROM(user_path: String, kernel_path: String, ty: MemoryLoadFileType = MemoryLoadFileType.Hex) extends Module with HasCoreParameter with HasSocParameter {
   val io = IO(new Bundle {
     val a   = Input(UInt(XLEN.W))
     val spo = Output(UInt(XLEN.W))
@@ -22,12 +24,12 @@ class IROM extends Module with HasCoreParameter with HasSocParameter {
   /* ---------- user ---------- */
 
   val user = Mem((1 << addrBits_verilator) >> dataBytesBits, UInt(XLEN.W))
-  loadMemoryFromFile(user, "meminit.bin")
+  loadMemoryFromFileInline(user, user_path, ty)
 
   /* ---------- kernel ---------- */
 
   val kernel = Mem((1 << addrBits_verilator) >> dataBytesBits, UInt(XLEN.W))
-  loadMemoryFromFile(user, "trap_handle.bin")
+  loadMemoryFromFileInline(kernel, kernel_path, ty)
 
   /* ---------- output ---------- */
 
@@ -39,7 +41,7 @@ class IROM extends Module with HasCoreParameter with HasSocParameter {
     0.U,
     Seq(
       (io.a < KERNEL_BEGIN.U)  -> user(u_index),
-      (KERNEL_BEGIN.U <= io.a) -> user(k_index)
+      (KERNEL_BEGIN.U <= io.a) -> kernel(k_index)
     )
   )
 

@@ -18,6 +18,7 @@ import hitsz.io.DebugBundle
 import hitsz.io.device.BridgeDev_Bundle
 import hitsz.io.device.BtnStbl
 import hitsz.io.device.PosEdge
+import firrtl.annotations.MemoryLoadFileType
 
 /* ********** ********** Settings ********** ********** */
 
@@ -78,7 +79,7 @@ trait HasSocParameter {
 
 import hitsz.io.blackbox.CLKGen
 
-class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
+class miniRV_SoC(user_path: String, kernel_path: String, ty: MemoryLoadFileType = MemoryLoadFileType.Hex) extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
   val io = IO(new Bundle {
 
@@ -121,10 +122,9 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
     if (ENV.isVivado) { // vivado
       // irom
       val irom = Module(new DistributedSinglePortROM(iromLens_vivado, XLEN))
-      irom.io.a             := cpu_core.io.irom.addr(addrBits_vivado - 1, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
     } else { // verilator
-      val irom = Module(new IROM)
+      val irom = Module(new IROM(user_path, kernel_path, ty))
       irom.io.a             := cpu_core.io.irom.addr(addrBits_verilator - 1, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
     }
@@ -148,7 +148,7 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
     if (ENV.isVivado) {
       // vivado 就是用 interleaved dram
     } else {
-      val dram = Module(new DRAM)
+      val dram = Module(new DRAM(user_path, ty))
       dram.io.a  := bus0.addr(addrBits_verilator - 1, dataBytesBits) // dram 是 word 寻址的
       dram.io.d  := bus0.wdata
       dram.io.we := bus0.wen
@@ -196,16 +196,4 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
 
     io.dbg := cpu_core.io.debug
   }
-}
-
-object miniRV_SoCTest extends App {
-
-  val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new miniRV_SoC,
-    args = Array("--target-dir", "generated"),
-    firtoolOpts = Array(
-      "--strip-debug-info",
-      "-disable-all-randomization"
-    )
-  )
 }

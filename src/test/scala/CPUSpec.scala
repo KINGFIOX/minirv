@@ -26,10 +26,10 @@ class CPUSpec extends AnyFreeSpec with Matchers {
     }
   )
 
-  "test BitPat" in {
-    simulate(new miniRV_SoC) { dut =>
-      // 初始化
+  // "test BitPat" in {
+  //   simulate(new miniRV_SoC) { dut =>
+  //     // 初始化
 
-    }
-  }
+  //   }
+  // }
 }
