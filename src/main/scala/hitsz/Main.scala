@@ -4,8 +4,11 @@ import chisel3._
 
 import hitsz.io.miniRV_SoC
 
+import java.lang.Enum
+
 object ENV {
   // 定义: 是输出到 vivado, 还是 verilator
+  val isVivado = false
 }
 
 /** @brief

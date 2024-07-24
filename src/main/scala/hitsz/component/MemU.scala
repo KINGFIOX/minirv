@@ -2,7 +2,6 @@ package hitsz.component
 
 import chisel3._
 import chisel3.util._
-import hitsz.common.HasDRAMParameter
 import hitsz.common.HasCoreParameter
 import hitsz.utils.SignExt
 import hitsz.utils.ZeroExt
@@ -14,8 +13,6 @@ import hitsz.core.BusBundle
 object MemUOpType extends ChiselEnum {
   val mem_X, mem_LB, mem_LH, mem_LW, mem_LBU, mem_LHU, mem_SB, mem_SH, mem_SW = Value
 }
-
-import hitsz.common.HasCoreParameter
 
 /** @brief
   *   Mem 的输入

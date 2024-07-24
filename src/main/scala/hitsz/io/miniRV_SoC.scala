@@ -14,6 +14,7 @@ import hitsz.io.blackbox.IROM
 import hitsz.io.trace.DRAM
 import hitsz.io.device.SevenSegDigital
 import hitsz.io.DebugBundle
+import hitsz.ENV
 
 trait HasSocParameter {
 
@@ -49,12 +50,9 @@ trait HasSocParameter {
   val ADDR_MEM_END   = 0xffff_f000
 }
 
-class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
+class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
-  val io = FlatIO(new Bundle {
-    val fpga_clk = Input(Clock())
-    val fpga_rst = Input(Bool())
-
+  val io = IO(new Bundle {
     // /* ---------- 外设 ---------- */
 
     // val switch = Input(UInt(switchBits.W)) // 拨码开关
@@ -74,45 +72,58 @@ class miniRV_SoC extends RawModule with HasSevenSegParameter with HasSocParamete
 
     /* ---------- debug ---------- */
 
-    val debug = new DebugBundle
+    val dbg = new DebugBundle
   })
 
-  withClockAndReset(io.fpga_clk, io.fpga_rst) {
+  val cpu_clk = if (ENV.isVivado) CLKGen(this.clock) else this.clock
+
+  withClock(cpu_clk) {
 
     /* ---------- CPU Core ---------- */
 
     val cpu_core = Module(new CPUCore)
+    io.dbg := cpu_core.io.dbg
 
     /* ---------- irom ---------- */
 
-    val irom = Module(new IROM)
-    irom.io.a             := cpu_core.io.irom.addr(15, 2)
-    cpu_core.io.irom.inst := irom.io.spo
-
-    val dram = Module(new DRAM("/home/wangfiox/Documents/minirv/cdp-tests/meminit.bin"))
-    dram.io.clk           := io.fpga_clk
-    dram.io.a             := cpu_core.io.bus.addr(15, 2) // dram 是 word 寻址的
-    dram.io.d             := cpu_core.io.bus.wdata
-    dram.io.we            := cpu_core.io.bus.wen
-    cpu_core.io.bus.rdata := dram.io.spo
-    io.debug              := cpu_core.io.debug
+    if (ENV.isVivado) {
+      val irom = Module(new DistributedSinglePortROM(vivado_iromLens, XLEN))
+      irom.io.a             := cpu_core.io.irom.addr(vivado_addrBits, dataBytesBits)
+      cpu_core.io.irom.inst := irom.io.spo
+    } else {
+      val irom = Module(new IROM)
+      irom.io.a             := cpu_core.io.irom.addr(verilator_addrBits, dataBytesBits)
+      cpu_core.io.irom.inst := irom.io.spo
+    }
 
     // /* ---------- bridge ---------- */
 
-    // val addr_space_range: Seq[(BigInt, BigInt)] = Seq(
-    //   (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
-    //   (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
-    //   (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
-    //   (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
-    //   (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
-    // )
+    val addr_space_range = Seq(
+      (ADDR_MEM_BEGIN, ADDR_MEM_END) // memory
+      // (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
+      // (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
+      // (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
+      // (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
+    )
 
-    // val bridge = Module(new Bridge(addr_space_range))
-    // bridge.io.cpu := cpu_core.io.bus
+    val bridge = Module(new Bridge(addr_space_range))
+    bridge.io.cpu <> cpu_core.io.bus
 
     // /* ---------- dram ---------- */
 
-    // val bus0 = bridge.io.devices(0)
+    val bus0 = bridge.io.dev(0)
+
+    if (ENV.isVivado) {
+      // vivado
+    } else {
+      val dram = Module(new DRAM("/home/wangfiox/Documents/minirv/cdp-tests/meminit.bin"))
+      dram.io.clk := this.clock
+      dram.io.a   := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的
+      dram.io.d   := bus0.wdata
+      dram.io.we  := bus0.wen
+      bus0.rdata  := dram.io.spo
+    }
+
     // val dram = Module(new DRAM)
     // dram.io.clk := io.fpga_clk
     // dram.io.a   := bus0.addr(15, 0)

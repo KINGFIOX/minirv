@@ -31,9 +31,9 @@ class BusBundle extends Bundle with HasCoreParameter {
 
 class CPUCore extends Module with HasCoreParameter {
   val io = IO(new Bundle {
-    val irom  = Flipped(new InstROMBundle)
-    val bus   = new BusBundle
-    val debug = new DebugBundle
+    val irom = Flipped(new InstROMBundle)
+    val bus  = new BusBundle
+    val dbg  = new DebugBundle
   })
 
   /* ---------- IF ---------- */
@@ -114,15 +114,15 @@ class CPUCore extends Module with HasCoreParameter {
 
   // 这个 debug 的线，正好差了一个周期，懒得整了，直接 RegNext
 
-  io.debug.wb_have_inst := RegNext(true.B)
-  io.debug.wb_pc        := RegNext(if_.io.out.pc_4 - 4.U)
+  io.dbg.wb_have_inst := RegNext(true.B)
+  io.dbg.wb_pc        := RegNext(if_.io.out.pc_4 - 4.U)
   // printf("wb_pc=%x\n", io.debug.wb_pc)
   // printf("pc_4=%x\n", if_.io.out.pc_4)
-  io.debug.wb_ena := RegNext(Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B))
-  io.debug.wb_reg := RegNext(cu_.io.rf.rd_i)
+  io.dbg.wb_ena := RegNext(Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B))
+  io.dbg.wb_reg := RegNext(cu_.io.rf.rd_i)
   // printf("wb_reg=%x\n", io.debug.wb_reg)
   // printf("wb_value=%x\n", io.debug.wb_value)
-  io.debug.wb_value := RegNext(
+  io.dbg.wb_value := RegNext(
     MuxCase(
       0.U,
       Seq(
