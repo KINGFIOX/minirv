@@ -102,7 +102,7 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
       (ADDR_MEM_BEGIN, ADDR_MEM_END) // memory
       // (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte
       // (ADDR_LED, ADDR_LED + ledBytes), //  24 个 led
-      // (ADDR_SWITCH, ADDR_SWITCH + ledBytes), // 24 个 switch
+      // (ADDR_SWITCH, ADDR_SWITCH + ledBytes) // 24 个 switch
       // (ADDR_BUTTON, ADDR_BUTTON + buttonBytes) // 5 个 button
     )
 
@@ -123,13 +123,6 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
       dram.io.we  := bus0.wen
       bus0.rdata  := dram.io.spo
     }
-
-    // val dram = Module(new DRAM)
-    // dram.io.clk := io.fpga_clk
-    // dram.io.a   := bus0.addr(15, 0)
-    // dram.io.d   := bus0.wdata
-    // dram.io.we  := bus0.wen
-    // bus0.rdata  := dram.io.spo
 
     // /* ---------- Seven 数码管 ---------- */
 

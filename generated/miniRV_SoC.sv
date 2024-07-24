@@ -538,10 +538,10 @@ module CPUCore(
   input  [31:0] io_bus_rdata,
   output [3:0]  io_bus_wen,
   output [31:0] io_bus_wdata,
-                io_debug_wb_pc,
-  output        io_debug_wb_ena,
-  output [4:0]  io_debug_wb_reg,
-  output [31:0] io_debug_wb_value
+                io_dbg_wb_pc,
+  output        io_dbg_wb_ena,
+  output [4:0]  io_dbg_wb_reg,
+  output [31:0] io_dbg_wb_value
 );
 
   wire [31:0] _mem__io_rdata;
@@ -563,22 +563,22 @@ module CPUCore(
   wire [31:0] _if__io_out_inst;
   wire [31:0] _if__io_out_pc_4;
   wire        _if__io_in_rs1_v_T = _cu__io_rf_rs1_i == 5'h0;
-  wire [31:0] _io_debug_wb_pc_T = _if__io_out_pc_4 - 32'h4;
+  wire [31:0] _io_dbg_wb_pc_T = _if__io_out_pc_4 - 32'h4;
   wire        _mem__io_in_wdata_T = _cu__io_rf_rs2_i == 5'h0;
   wire        _GEN = _cu__io_ctrl_wb_sel == 3'h0;
   wire        _GEN_0 = _cu__io_ctrl_wb_sel == 3'h1;
   wire        _GEN_1 = _cu__io_rf_rd_i == 5'h0;
   wire        _GEN_2 = _cu__io_ctrl_wb_sel == 3'h2;
   wire        _GEN_3 = _cu__io_ctrl_wb_sel == 3'h3;
-  reg  [31:0] io_debug_wb_pc_REG;
-  reg         io_debug_wb_ena_REG;
-  reg  [4:0]  io_debug_wb_reg_REG;
-  reg  [31:0] io_debug_wb_value_REG;
+  reg  [31:0] io_dbg_wb_pc_REG;
+  reg         io_dbg_wb_ena_REG;
+  reg  [4:0]  io_dbg_wb_reg_REG;
+  reg  [31:0] io_dbg_wb_value_REG;
   always @(posedge clock) begin
-    io_debug_wb_pc_REG <= _io_debug_wb_pc_T;
-    io_debug_wb_ena_REG <= |_cu__io_ctrl_wb_sel;
-    io_debug_wb_reg_REG <= _cu__io_rf_rd_i;
-    io_debug_wb_value_REG <=
+    io_dbg_wb_pc_REG <= _io_dbg_wb_pc_T;
+    io_dbg_wb_ena_REG <= |_cu__io_ctrl_wb_sel;
+    io_dbg_wb_reg_REG <= _cu__io_rf_rd_i;
+    io_dbg_wb_value_REG <=
       _cu__io_ctrl_wb_sel == 3'h1
         ? _alu__io_out
         : _cu__io_ctrl_wb_sel == 3'h3
@@ -636,7 +636,7 @@ module CPUCore(
   ALU alu_ (
     .io_op1_v
       ((_cu__io_ctrl_alu_op1 != 2'h1 | _if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data)
-       | (_cu__io_ctrl_alu_op1 == 2'h2 ? _io_debug_wb_pc_T : 32'h0)),
+       | (_cu__io_ctrl_alu_op1 == 2'h2 ? _io_dbg_wb_pc_T : 32'h0)),
     .io_op2_v
       ((_cu__io_ctrl_alu_op2 == 2'h1 ? _cu__io_imm : 32'h0)
        | (_cu__io_ctrl_alu_op2 != 2'h2 | _mem__io_in_wdata_T ? 32'h0 : __rf_ext_R0_data)),
@@ -661,57 +661,88 @@ module CPUCore(
     .io_bus_wdata (io_bus_wdata),
     .io_rdata     (_mem__io_rdata)
   );
-  assign io_debug_wb_pc = io_debug_wb_pc_REG;
-  assign io_debug_wb_ena = io_debug_wb_ena_REG;
-  assign io_debug_wb_reg = io_debug_wb_reg_REG;
-  assign io_debug_wb_value = io_debug_wb_value_REG;
+  assign io_dbg_wb_pc = io_dbg_wb_pc_REG;
+  assign io_dbg_wb_ena = io_dbg_wb_ena_REG;
+  assign io_dbg_wb_reg = io_dbg_wb_reg_REG;
+  assign io_dbg_wb_value = io_dbg_wb_value_REG;
 endmodule
 
 // external module IROM
 
+module Bridge(
+  input  [31:0] io_cpu_addr,
+  output [31:0] io_cpu_rdata,
+  input  [3:0]  io_cpu_wen,
+  input  [31:0] io_cpu_wdata,
+  output [31:0] io_dev_0_addr,
+  output [3:0]  io_dev_0_wen,
+  output [31:0] io_dev_0_wdata,
+  input  [31:0] io_dev_0_rdata
+);
+
+  assign io_cpu_rdata = io_dev_0_rdata;
+  assign io_dev_0_addr = io_cpu_addr;
+  assign io_dev_0_wen = {4{io_cpu_addr < 32'hFFFFF001}} & io_cpu_wen;
+  assign io_dev_0_wdata = io_cpu_wdata;
+endmodule
+
 // external module DRAM
 
 module miniRV_SoC(
-  input         fpga_clk,
-                fpga_rst,
-  output        debug_wb_have_inst,
-  output [31:0] debug_wb_pc,
-  output        debug_wb_ena,
-  output [4:0]  debug_wb_reg,
-  output [31:0] debug_wb_value
+  input         clock,
+                reset,
+  output        io_dbg_wb_have_inst,
+  output [31:0] io_dbg_wb_pc,
+  output        io_dbg_wb_ena,
+  output [4:0]  io_dbg_wb_reg,
+  output [31:0] io_dbg_wb_value
 );
 
   wire [31:0] _dram_spo;
+  wire [31:0] _bridge_io_cpu_rdata;
+  wire [31:0] _bridge_io_dev_0_addr;
+  wire [3:0]  _bridge_io_dev_0_wen;
+  wire [31:0] _bridge_io_dev_0_wdata;
   wire [31:0] _irom_spo;
   wire [31:0] _cpu_core_io_irom_addr;
   wire [31:0] _cpu_core_io_bus_addr;
   wire [3:0]  _cpu_core_io_bus_wen;
   wire [31:0] _cpu_core_io_bus_wdata;
   CPUCore cpu_core (
-    .clock             (fpga_clk),
-    .reset             (fpga_rst),
-    .io_irom_addr      (_cpu_core_io_irom_addr),
-    .io_irom_inst      (_irom_spo),
-    .io_bus_addr       (_cpu_core_io_bus_addr),
-    .io_bus_rdata      (_dram_spo),
-    .io_bus_wen        (_cpu_core_io_bus_wen),
-    .io_bus_wdata      (_cpu_core_io_bus_wdata),
-    .io_debug_wb_pc    (debug_wb_pc),
-    .io_debug_wb_ena   (debug_wb_ena),
-    .io_debug_wb_reg   (debug_wb_reg),
-    .io_debug_wb_value (debug_wb_value)
+    .clock           (clock),
+    .reset           (reset),
+    .io_irom_addr    (_cpu_core_io_irom_addr),
+    .io_irom_inst    (_irom_spo),
+    .io_bus_addr     (_cpu_core_io_bus_addr),
+    .io_bus_rdata    (_bridge_io_cpu_rdata),
+    .io_bus_wen      (_cpu_core_io_bus_wen),
+    .io_bus_wdata    (_cpu_core_io_bus_wdata),
+    .io_dbg_wb_pc    (io_dbg_wb_pc),
+    .io_dbg_wb_ena   (io_dbg_wb_ena),
+    .io_dbg_wb_reg   (io_dbg_wb_reg),
+    .io_dbg_wb_value (io_dbg_wb_value)
   );
   IROM irom (
-    .a   ({2'h0, _cpu_core_io_irom_addr[15:2]}),
+    .a   ({1'h0, _cpu_core_io_irom_addr[16:2]}),
     .spo (_irom_spo)
   );
+  Bridge bridge (
+    .io_cpu_addr    (_cpu_core_io_bus_addr),
+    .io_cpu_rdata   (_bridge_io_cpu_rdata),
+    .io_cpu_wen     (_cpu_core_io_bus_wen),
+    .io_cpu_wdata   (_cpu_core_io_bus_wdata),
+    .io_dev_0_addr  (_bridge_io_dev_0_addr),
+    .io_dev_0_wen   (_bridge_io_dev_0_wen),
+    .io_dev_0_wdata (_bridge_io_dev_0_wdata),
+    .io_dev_0_rdata (_dram_spo)
+  );
   DRAM dram (
-    .clk (fpga_clk),
-    .a   ({2'h0, _cpu_core_io_bus_addr[15:2]}),
-    .we  (_cpu_core_io_bus_wen),
-    .d   (_cpu_core_io_bus_wdata),
+    .clk (clock),
+    .a   ({1'h0, _bridge_io_dev_0_addr[16:2]}),
+    .we  (_bridge_io_dev_0_wen),
+    .d   (_bridge_io_dev_0_wdata),
     .spo (_dram_spo)
   );
-  assign debug_wb_have_inst = 1'h1;
+  assign io_dbg_wb_have_inst = 1'h1;
 endmodule
 
