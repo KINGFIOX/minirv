@@ -49,7 +49,9 @@ class CPUCore extends Module with HasCoreParameter {
   val cu_ = Module(new CU)
   cu_.io.inst := cur_inst
 
-  val regfile_ = new RegFile
+  val regfile_ = Module(new RegFile)
+  regfile_.io.rs1_i := cu_.io.rf.rs1_i
+  regfile_.io.rs2_i := cu_.io.rf.rs2_i
 
   /* ---------- EXE ---------- */
 
@@ -58,7 +60,7 @@ class CPUCore extends Module with HasCoreParameter {
   alu_.io.op1_v := Mux1H(
     Seq(
       (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_ZERO) -> 0.U,
-      (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_RS1)  -> regfile_.read(cu_.io.rf.rs1_i),
+      (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_RS1)  -> regfile_.io.rs1_v,
       (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_PC)   -> (if_.io.out.pc_4 - 4.U)
     )
   )
@@ -66,7 +68,7 @@ class CPUCore extends Module with HasCoreParameter {
     Seq(
       (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_ZERO) -> 0.U,
       (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_IMM)  -> cu_.io.imm,
-      (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_RS2)  -> regfile_.read(cu_.io.rf.rs2_i)
+      (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_RS2)  -> regfile_.io.rs2_v
     )
   )
 
@@ -76,15 +78,15 @@ class CPUCore extends Module with HasCoreParameter {
 
   // beq rs1, rs2, offset => if(rs1==rs2) pc=pc+offset
   private val bru_ = Module(new BRU)
-  bru_.io.in.rs1_v  := regfile_.read(cu_.io.rf.rs1_i)
-  bru_.io.in.rs2_v  := regfile_.read(cu_.io.rf.rs2_i)
+  bru_.io.in.rs1_v  := regfile_.io.rs1_v
+  bru_.io.in.rs2_v  := regfile_.io.rs2_v
   bru_.io.in.bru_op := cu_.io.ctrl.bru_op
   if_.io.in.br_flag := bru_.io.br_flag // 是否跳转
 
   // jalr rd, offset(rs1) => t=pc+4; pc=(rs1_v+offset)&~1; rd_v=t
   // jal rd, offset => rd=pc+4; pc=pc+offset
   if_.io.in.imm   := cu_.io.imm //
-  if_.io.in.rs1_v := regfile_.read(cu_.io.rf.rs1_i) // 只有 jalr 会用
+  if_.io.in.rs1_v := regfile_.io.rs1_v // 只有 jalr 会用
 
   /* ---------- MEM ---------- */
 
@@ -92,21 +94,29 @@ class CPUCore extends Module with HasCoreParameter {
   mem_.io.bus <> io.bus
   mem_.io.in.op    := cu_.io.ctrl.op_mem
   mem_.io.in.addr  := alu_.io.out
-  mem_.io.in.wdata := regfile_.read(cu_.io.rf.rs2_i)
+  mem_.io.in.wdata := regfile_.io.rs2_v
 
   /* ---------- WB ---------- */
 
+  regfile_.io.waddr := 0.U
+  regfile_.io.wdata := 0.U
   switch(cu_.io.ctrl.wb_sel) {
     is(WB_sel.wbsel_X) { /* 啥也不干 */ }
     is(WB_sel.wbsel_ALU) {
-      regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
+      // regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
+      regfile_.io.waddr := cu_.io.rf.rd_i
+      regfile_.io.wdata := alu_.io.out
     }
     is(WB_sel.wbsel_CSR) { /* TODO */ }
     is(WB_sel.wbsel_MEM) {
-      regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata)
+      // regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata)
+      regfile_.io.waddr := cu_.io.rf.rd_i
+      regfile_.io.wdata := mem_.io.rdata
     }
     is(WB_sel.wbsel_PC4) {
-      regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
+      // regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
+      regfile_.io.waddr := cu_.io.rf.rd_i
+      regfile_.io.wdata := if_.io.out.pc_4
     }
   }
 
