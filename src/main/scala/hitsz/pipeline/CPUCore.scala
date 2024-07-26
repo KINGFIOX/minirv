@@ -91,26 +91,19 @@ class CPUCore extends Module with HasCoreParameter {
   mem_.io.in.addr  := exe2mem_r.alu_out
   mem_.io.in.wdata := exe2mem_r.read_val.rs2_v
 
+  private val mem2wb_l = MEM2WB(exe2mem_r, mem_.io.rdata)
   /* ---------- WB ---------- */
+  private val mem2wb_r = Wire(new MEM2WB)
+  // pipe(mem2wb_l, mem2wb_r, true.B)
+  mem2wb_r := mem2wb_l
 
-  regfile_.io.write.wdata := 0.U
-  regfile_.io.write.wen   := cu_.io.ctrl.wb_wen
-  switch(cu_.io.ctrl.wb_sel) {
-    is(WB_sel.wbsel_X) { /* 啥也不干 */ }
-    is(WB_sel.wbsel_ALU) {
-      // regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
-      regfile_.io.write.wdata := exe_.io.alu_out
-    }
-    is(WB_sel.wbsel_CSR) { /* TODO */ }
-    is(WB_sel.wbsel_MEM) {
-      // regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata)
-      regfile_.io.write.wdata := mem_.io.rdata
-    }
-    is(WB_sel.wbsel_PC4) {
-      // regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
-      regfile_.io.write.wdata := if_.io.out.pc_4
-    }
-  }
+  val wb_ = Module(new WB)
+  wb_.io.in.data          := mem2wb_r.data
+  wb_.io.in.ctrl          := mem2wb_r.ctrl
+  wb_.io.in.rd_i          := mem2wb_r.rf.rd_i
+  regfile_.io.write.wen   := wb_.io.out.wen
+  regfile_.io.write.wdata := wb_.io.out.wdata
+  regfile_.io.write.rd_i  := wb_.io.out.rd_i
 
   /* ---------- debug ---------- */
 
