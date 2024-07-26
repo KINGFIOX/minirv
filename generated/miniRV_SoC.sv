@@ -19,7 +19,7 @@ module IF(
                 io_out_pc_4,
   input  [31:0] io_in_imm,
   input         io_in_br_flag,
-  input  [2:0]  io_in_op,
+  input  [2:0]  io_in_npc_op,
   input  [31:0] io_in_rs1_v
 );
 
@@ -38,7 +38,7 @@ module IF(
          {io_in_br_flag ? pc + io_in_imm : _pc_T_4},
          {_pc_T_4},
          {pc}};
-      pc <= _GEN[io_in_op];
+      pc <= _GEN[io_in_npc_op];
     end
   end // always @(posedge)
   assign io_irom_addr = pc;
@@ -49,11 +49,12 @@ endmodule
 module CU(
   input  [31:0] io_inst,
   output [3:0]  io_ctrl_alu_calc,
-  output [1:0]  io_ctrl_alu_op1,
-                io_ctrl_alu_op2,
+  output [1:0]  io_ctrl_alu_op1_sel,
+                io_ctrl_alu_op2_sel,
   output [3:0]  io_ctrl_op_mem,
   output [2:0]  io_ctrl_wb_sel,
-                io_ctrl_npc_op,
+  output        io_ctrl_wb_wen,
+  output [2:0]  io_ctrl_npc_op,
                 io_ctrl_bru_op,
   output [31:0] io_imm
 );
@@ -146,7 +147,7 @@ module CU(
                                                                               ? 4'h2
                                                                               : {3'h0,
                                                                                  _GEN_11};
-  assign io_ctrl_alu_op1 =
+  assign io_ctrl_alu_op1_sel =
     _GEN_41
       ? 2'h2
       : _GEN_40
@@ -155,7 +156,7 @@ module CU(
              _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23
                | _GEN_22 | _GEN_20 | _GEN_19 | _GEN_18 | _GEN_17 | _GEN_16 | _GEN_15
                | _GEN_14 | _GEN_13 | _GEN_12 | _GEN_11};
-  assign io_ctrl_alu_op2 =
+  assign io_ctrl_alu_op2_sel =
     _GEN_41 | _GEN_40 | _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28 | _GEN_27 | _GEN_25
     | _GEN_24 | _GEN_23 | _GEN_22
       ? 2'h1
@@ -179,6 +180,11 @@ module CU(
             | _GEN_22 | _GEN_21
               ? 3'h1
               : _GEN_7 | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3 ? 3'h3 : 3'h0;
+  assign io_ctrl_wb_wen =
+    _GEN_41 | _GEN_40 | _GEN_39 | _GEN_38 | _GEN_31 | _GEN_30 | _GEN_29 | _GEN_28
+    | _GEN_27 | _GEN_25 | _GEN_24 | _GEN_23 | _GEN_22 | _GEN_20 | _GEN_19 | _GEN_18
+    | _GEN_17 | _GEN_16 | _GEN_15 | _GEN_14 | _GEN_13 | _GEN_12 | _GEN_10 | _GEN_7
+    | _GEN_6 | _GEN_5 | _GEN_4 | _GEN_3;
   assign io_ctrl_npc_op =
     _GEN_39
       ? 3'h3
@@ -318,31 +324,33 @@ endmodule
 
 module RegFile(
   input         clock,
-  input  [31:0] io_inst,
-  output [31:0] io_rs1_v,
-                io_rs2_v,
-  input  [31:0] io_wdata,
-  input         io_wen
+  input  [4:0]  io_read_rs1_i,
+  output [31:0] io_read_rs1_v,
+  input  [4:0]  io_read_rs2_i,
+  output [31:0] io_read_rs2_v,
+  input  [4:0]  io_write_rd_i,
+  input  [31:0] io_write_wdata,
+  input         io_write_wen
 );
 
   wire [31:0] __rf_ext_R0_data;
   wire [31:0] __rf_ext_R1_data;
   _rf_32x32 _rf_ext (
-    .R0_addr (io_inst[24:20]),
+    .R0_addr (io_read_rs2_i),
     .R0_en   (1'h1),
     .R0_clk  (clock),
     .R0_data (__rf_ext_R0_data),
-    .R1_addr (io_inst[19:15]),
+    .R1_addr (io_read_rs1_i),
     .R1_en   (1'h1),
     .R1_clk  (clock),
     .R1_data (__rf_ext_R1_data),
-    .W0_addr (io_inst[11:7]),
-    .W0_en   (io_wen & (|(io_inst[11:7]))),
+    .W0_addr (io_write_rd_i),
+    .W0_en   (io_write_wen & (|io_write_rd_i)),
     .W0_clk  (clock),
-    .W0_data (io_wdata)
+    .W0_data (io_write_wdata)
   );
-  assign io_rs1_v = io_inst[19:15] == 5'h0 ? 32'h0 : __rf_ext_R1_data;
-  assign io_rs2_v = io_inst[24:20] == 5'h0 ? 32'h0 : __rf_ext_R0_data;
+  assign io_read_rs1_v = io_read_rs1_i == 5'h0 ? 32'h0 : __rf_ext_R1_data;
+  assign io_read_rs2_v = io_read_rs2_i == 5'h0 ? 32'h0 : __rf_ext_R0_data;
 endmodule
 
 module ALU(
@@ -391,6 +399,44 @@ module BRU(
      {$signed(io_in_rs1_v) < $signed(io_in_rs2_v)},
      {_GEN}};
   assign io_br_flag = _GEN_0[io_in_bru_op];
+endmodule
+
+module EXE(
+  input  [3:0]  io_alu_ctrl_calc,
+  input  [1:0]  io_alu_ctrl_op1_sel,
+                io_alu_ctrl_op2_sel,
+  output [31:0] io_alu_out,
+  input  [2:0]  io_branch_npc_op,
+                io_branch_bru_op,
+  input  [31:0] io_imm,
+                io_rf_read_rs1_v,
+                io_rf_read_rs2_v,
+                io_pc,
+  output [2:0]  io_if__npc_op,
+  output [31:0] io_if__imm,
+                io_if__rs1_v,
+  output        io_if__br_flag
+);
+
+  ALU alu_ (
+    .io_op1_v
+      ((io_alu_ctrl_op1_sel == 2'h1 ? io_rf_read_rs1_v : 32'h0)
+       | (io_alu_ctrl_op1_sel == 2'h2 ? io_pc : 32'h0)),
+    .io_op2_v
+      ((io_alu_ctrl_op2_sel == 2'h1 ? io_imm : 32'h0)
+       | (io_alu_ctrl_op2_sel == 2'h2 ? io_rf_read_rs2_v : 32'h0)),
+    .io_alu_op (io_alu_ctrl_calc),
+    .io_out    (io_alu_out)
+  );
+  BRU bru_ (
+    .io_in_rs1_v  (io_rf_read_rs1_v),
+    .io_in_rs2_v  (io_rf_read_rs2_v),
+    .io_in_bru_op (io_branch_bru_op),
+    .io_br_flag   (io_if__br_flag)
+  );
+  assign io_if__npc_op = io_branch_npc_op;
+  assign io_if__imm = io_imm;
+  assign io_if__rs1_v = io_rf_read_rs1_v;
 endmodule
 
 module MemU(
@@ -499,21 +545,25 @@ module CPUCore(
 );
 
   wire [31:0]      _mem__io_rdata;
-  wire             _bru__io_br_flag;
-  wire [31:0]      _alu__io_out;
-  wire [31:0]      _regfile__io_rs1_v;
-  wire [31:0]      _regfile__io_rs2_v;
+  wire [31:0]      _exe__io_alu_out;
+  wire [2:0]       _exe__io_if__npc_op;
+  wire [31:0]      _exe__io_if__imm;
+  wire [31:0]      _exe__io_if__rs1_v;
+  wire             _exe__io_if__br_flag;
+  wire [31:0]      _regfile__io_read_rs1_v;
+  wire [31:0]      _regfile__io_read_rs2_v;
   wire [3:0]       _cu__io_ctrl_alu_calc;
-  wire [1:0]       _cu__io_ctrl_alu_op1;
-  wire [1:0]       _cu__io_ctrl_alu_op2;
+  wire [1:0]       _cu__io_ctrl_alu_op1_sel;
+  wire [1:0]       _cu__io_ctrl_alu_op2_sel;
   wire [3:0]       _cu__io_ctrl_op_mem;
   wire [2:0]       _cu__io_ctrl_wb_sel;
+  wire             _cu__io_ctrl_wb_wen;
   wire [2:0]       _cu__io_ctrl_npc_op;
   wire [2:0]       _cu__io_ctrl_bru_op;
   wire [31:0]      _cu__io_imm;
   wire [31:0]      _if__io_out_inst;
   wire [31:0]      _if__io_out_pc_4;
-  wire [31:0]      _io_dbg_wb_pc_T = _if__io_out_pc_4 - 32'h4;
+  wire [31:0]      id2exe_r_pc = _if__io_out_pc_4 - 32'h4;
   wire [7:0][31:0] _GEN =
     {{32'h0},
      {32'h0},
@@ -521,19 +571,19 @@ module CPUCore(
      {_if__io_out_pc_4},
      {_mem__io_rdata},
      {32'h0},
-     {_alu__io_out},
+     {_exe__io_alu_out},
      {32'h0}};
   reg  [31:0]      io_dbg_wb_pc_REG;
   reg              io_dbg_wb_ena_REG;
   reg  [4:0]       io_dbg_wb_reg_REG;
   reg  [31:0]      io_dbg_wb_value_REG;
   always @(posedge clock) begin
-    io_dbg_wb_pc_REG <= _io_dbg_wb_pc_T;
+    io_dbg_wb_pc_REG <= id2exe_r_pc;
     io_dbg_wb_ena_REG <= |_cu__io_ctrl_wb_sel;
     io_dbg_wb_reg_REG <= _if__io_out_inst[11:7];
     io_dbg_wb_value_REG <=
       _cu__io_ctrl_wb_sel == 3'h1
-        ? _alu__io_out
+        ? _exe__io_alu_out
         : _cu__io_ctrl_wb_sel == 3'h3
             ? _mem__io_rdata
             : _cu__io_ctrl_wb_sel == 3'h4 ? _if__io_out_pc_4 : 32'h0;
@@ -545,55 +595,55 @@ module CPUCore(
     .io_irom_inst  (io_irom_inst),
     .io_out_inst   (_if__io_out_inst),
     .io_out_pc_4   (_if__io_out_pc_4),
-    .io_in_imm     (_cu__io_imm),
-    .io_in_br_flag (_bru__io_br_flag),
-    .io_in_op      (_cu__io_ctrl_npc_op),
-    .io_in_rs1_v   (_regfile__io_rs1_v)
+    .io_in_imm     (_exe__io_if__imm),
+    .io_in_br_flag (_exe__io_if__br_flag),
+    .io_in_npc_op  (_exe__io_if__npc_op),
+    .io_in_rs1_v   (_exe__io_if__rs1_v)
   );
   CU cu_ (
-    .io_inst          (_if__io_out_inst),
-    .io_ctrl_alu_calc (_cu__io_ctrl_alu_calc),
-    .io_ctrl_alu_op1  (_cu__io_ctrl_alu_op1),
-    .io_ctrl_alu_op2  (_cu__io_ctrl_alu_op2),
-    .io_ctrl_op_mem   (_cu__io_ctrl_op_mem),
-    .io_ctrl_wb_sel   (_cu__io_ctrl_wb_sel),
-    .io_ctrl_npc_op   (_cu__io_ctrl_npc_op),
-    .io_ctrl_bru_op   (_cu__io_ctrl_bru_op),
-    .io_imm           (_cu__io_imm)
+    .io_inst             (_if__io_out_inst),
+    .io_ctrl_alu_calc    (_cu__io_ctrl_alu_calc),
+    .io_ctrl_alu_op1_sel (_cu__io_ctrl_alu_op1_sel),
+    .io_ctrl_alu_op2_sel (_cu__io_ctrl_alu_op2_sel),
+    .io_ctrl_op_mem      (_cu__io_ctrl_op_mem),
+    .io_ctrl_wb_sel      (_cu__io_ctrl_wb_sel),
+    .io_ctrl_wb_wen      (_cu__io_ctrl_wb_wen),
+    .io_ctrl_npc_op      (_cu__io_ctrl_npc_op),
+    .io_ctrl_bru_op      (_cu__io_ctrl_bru_op),
+    .io_imm              (_cu__io_imm)
   );
   RegFile regfile_ (
-    .clock    (clock),
-    .io_inst  (_if__io_out_inst),
-    .io_rs1_v (_regfile__io_rs1_v),
-    .io_rs2_v (_regfile__io_rs2_v),
-    .io_wdata (_GEN[_cu__io_ctrl_wb_sel]),
-    .io_wen
-      ((|_cu__io_ctrl_wb_sel)
-       & (_cu__io_ctrl_wb_sel == 3'h1 | _cu__io_ctrl_wb_sel != 3'h2
-          & (_cu__io_ctrl_wb_sel == 3'h3 | _cu__io_ctrl_wb_sel == 3'h4)))
+    .clock          (clock),
+    .io_read_rs1_i  (_if__io_out_inst[19:15]),
+    .io_read_rs1_v  (_regfile__io_read_rs1_v),
+    .io_read_rs2_i  (_if__io_out_inst[24:20]),
+    .io_read_rs2_v  (_regfile__io_read_rs2_v),
+    .io_write_rd_i  (_if__io_out_inst[11:7]),
+    .io_write_wdata (_GEN[_cu__io_ctrl_wb_sel]),
+    .io_write_wen   (_cu__io_ctrl_wb_wen)
   );
-  ALU alu_ (
-    .io_op1_v
-      ((_cu__io_ctrl_alu_op1 == 2'h1 ? _regfile__io_rs1_v : 32'h0)
-       | (_cu__io_ctrl_alu_op1 == 2'h2 ? _io_dbg_wb_pc_T : 32'h0)),
-    .io_op2_v
-      ((_cu__io_ctrl_alu_op2 == 2'h1 ? _cu__io_imm : 32'h0)
-       | (_cu__io_ctrl_alu_op2 == 2'h2 ? _regfile__io_rs2_v : 32'h0)),
-    .io_alu_op (_cu__io_ctrl_alu_calc),
-    .io_out    (_alu__io_out)
-  );
-  BRU bru_ (
-    .io_in_rs1_v  (_regfile__io_rs1_v),
-    .io_in_rs2_v  (_regfile__io_rs2_v),
-    .io_in_bru_op (_cu__io_ctrl_bru_op),
-    .io_br_flag   (_bru__io_br_flag)
+  EXE exe_ (
+    .io_alu_ctrl_calc    (_cu__io_ctrl_alu_calc),
+    .io_alu_ctrl_op1_sel (_cu__io_ctrl_alu_op1_sel),
+    .io_alu_ctrl_op2_sel (_cu__io_ctrl_alu_op2_sel),
+    .io_alu_out          (_exe__io_alu_out),
+    .io_branch_npc_op    (_cu__io_ctrl_npc_op),
+    .io_branch_bru_op    (_cu__io_ctrl_bru_op),
+    .io_imm              (_cu__io_imm),
+    .io_rf_read_rs1_v    (_regfile__io_read_rs1_v),
+    .io_rf_read_rs2_v    (_regfile__io_read_rs2_v),
+    .io_pc               (id2exe_r_pc),
+    .io_if__npc_op       (_exe__io_if__npc_op),
+    .io_if__imm          (_exe__io_if__imm),
+    .io_if__rs1_v        (_exe__io_if__rs1_v),
+    .io_if__br_flag      (_exe__io_if__br_flag)
   );
   MemU mem_ (
     .clock        (clock),
     .reset        (reset),
     .io_in_op     (_cu__io_ctrl_op_mem),
-    .io_in_addr   (_alu__io_out),
-    .io_in_wdata  (_regfile__io_rs2_v),
+    .io_in_addr   (_exe__io_alu_out),
+    .io_in_wdata  (_regfile__io_read_rs2_v),
     .io_bus_addr  (io_bus_addr),
     .io_bus_rdata (io_bus_rdata),
     .io_bus_wen   (io_bus_wen),
