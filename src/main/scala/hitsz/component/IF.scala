@@ -28,7 +28,7 @@ object NPCOpType extends ChiselEnum {
 class IFBundle extends Bundle with HasCoreParameter {
   val imm     = Input(UInt(XLEN.W)) // br/jal 是 offset
   val br_flag = Input(Bool())
-  val op      = Input(NPCOpType())
+  val npc_op  = Input(NPCOpType())
   val rs1_v   = Input(UInt(XLEN.W)) // jalr 就是绝对地址
 }
 
@@ -52,7 +52,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   // 设置下一个时钟上升沿, pc
 
-  switch(io.in.op) {
+  switch(io.in.npc_op) {
     is(NPCOpType.npc_X) { /* 啥也不干 */ }
     is(NPCOpType.npc_4) {
       pc := pc + 4.U
