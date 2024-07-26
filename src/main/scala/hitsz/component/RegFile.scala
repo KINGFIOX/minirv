@@ -9,28 +9,32 @@ object WB_sel extends ChiselEnum {
   val wbsel_X, wbsel_ALU, wbsel_CSR, wbsel_MEM, wbsel_PC4 /* jal & jalr */ = Value
 }
 
+class RFRead extends Bundle with HasCoreParameter with HasRegFileParameter {
+  val rs1_i = Input(UInt(NRRegbits.W)) // 记录这些, 是因为要检测是否有 data hazard
+  val rs1_v = Output(UInt(XLEN.W))
+  val rs2_i = Input(UInt(NRRegbits.W))
+  val rs2_v = Output(UInt(XLEN.W))
+}
+
 /** @brief
   *   寄存器堆, 但是其实不是一个 chisel 的 Module
   */
 class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
   val io = IO(new Bundle {
-    val inst  = Input(UInt(XLEN.W))
-    val rs1_v = Output(UInt(XLEN.W))
-    val rs2_v = Output(UInt(XLEN.W))
-    val wdata = Input(UInt(XLEN.W))
-    val wen   = Input(Bool())
+    val read = new RFRead
+    val write = new Bundle {
+      val rd_i  = Input(UInt(NRRegbits.W))
+      val wdata = Input(UInt(XLEN.W))
+      val wen   = Input(Bool())
+    }
   })
   private val _rf = Mem(NRReg, UInt(XLEN.W))
 
-  val rs1_i = io.inst(19, 15)
-  val rs2_i = io.inst(24, 20)
-  val rd_i  = io.inst(11, 7)
+  io.read.rs1_v := Mux(io.read.rs1_i === 0.U, 0.U, _rf(io.read.rs1_i))
+  io.read.rs2_v := Mux(io.read.rs2_i === 0.U, 0.U, _rf(io.read.rs2_i))
 
-  io.rs1_v := Mux(rs1_i === 0.U, 0.U, _rf(rs1_i))
-  io.rs2_v := Mux(rs2_i === 0.U, 0.U, _rf(rs2_i))
-
-  when(io.wen && (rd_i =/= 0.U)) {
-    _rf(rd_i) := io.wdata
+  when(io.write.wen && (io.write.rd_i =/= 0.U)) {
+    _rf(io.write.rd_i) := io.write.wdata
   }
 
   // def read(addr: UInt): UInt        = Mux(addr === 0.U, 0.U, _rf(addr))

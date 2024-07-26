@@ -3,7 +3,7 @@ package hitsz.io.device
 import chisel3._
 import chisel3.util._
 import hitsz.common.HasCoreParameter
-import hitsz.core.BusBundle
+import hitsz.pipeline.BusBundle
 import hitsz.io.HasSocParameter
 import hitsz.utils.ZeroExt
 

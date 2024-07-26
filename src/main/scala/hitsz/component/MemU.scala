@@ -5,7 +5,7 @@ import chisel3.util._
 import hitsz.common.HasCoreParameter
 import hitsz.utils.SignExt
 import hitsz.utils.ZeroExt
-import hitsz.core.BusBundle
+import hitsz.pipeline.BusBundle
 
 /** @brief
   *   不过, 这里可能要拓展, 如果是 64 位指令的话

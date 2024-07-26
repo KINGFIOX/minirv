@@ -8,7 +8,7 @@ import hitsz.common.HasCoreParameter
 import hitsz.io.device.HasSevenSegParameter
 import hitsz.io.blackbox.PLL
 import hitsz.io.blackbox.CLKGen
-import hitsz.core.CPUCore
+import hitsz.pipeline.CPUCore
 import hitsz.io.device.Bridge
 import hitsz.io.blackbox.IROM
 import hitsz.io.trace.DRAM
