@@ -42,9 +42,9 @@ class MemU extends Module with HasCoreParameter {
 
   /* ---------- data struct ---------- */
 
-  private val rdataVec = io.bus.rdata.asTypeOf(Vec(dataBytes, UInt(8.W)))
-  private val subword  = io.in.addr(dataBytesBits - 1, 0) /* (1, 0) */
-  val subword1H        = UIntToOH(subword, dataBytes /* 4 */ )
+  private val rdataVec  = io.bus.rdata.asTypeOf(Vec(dataBytes, UInt(8.W)))
+  private val subword   = io.in.addr(dataBytesBits - 1, 0) /* (1, 0) */
+  private val subword1H = UIntToOH(subword, dataBytes /* 4 */ )
 
   /* ---------- 控制 ---------- */
 

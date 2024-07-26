@@ -67,61 +67,29 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- EXE ---------- */
   private val id2exe_r = Wire(new ID2EXEBundle)
   // pipe(id2exe_l, id2exe_r, true.B)
-  id2exe_r := id2exe_l
+  id2exe_r := id2exe_l // 只有一部分会进入到 exe 中
 
   private val exe_ = Module(new EXE)
-  exe_.io.alu := id2exe_r.cu.ctrl.alu
-
+  exe_.io.alu_ctrl      := id2exe_r.cu.ctrl.alu
   exe_.io.branch.npc_op := id2exe_r.cu.ctrl.npc_op
   exe_.io.branch.bru_op := id2exe_r.cu.ctrl.bru_op
-
   exe_.io.imm           := id2exe_r.cu.imm
-  exe_.io.rf.read.rs1_v := id2exe_r.rf.read.rs1_v
-  exe_.io.rf.read.rs2_v := id2exe_r.rf.read.rs2_v
+  exe_.io.rf_read.rs1_v := id2exe_r.rf.read_val.rs1_v
+  exe_.io.rf_read.rs2_v := id2exe_r.rf.read_val.rs2_v
   exe_.io.pc            := id2exe_r.pc
+  if_.io.in             := exe_.io.if_
 
-  if_.io.in := exe_.io.if_
-
-  // // TODO CSR
-
-  // val alu_ = Module(new ALU)
-  // alu_.io.alu_op := cu_.io.ctrl.alu.calc
-  // alu_.io.op1_v := Mux1H(
-  //   Seq(
-  //     (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_ZERO) -> 0.U,
-  //     (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_RS1)  -> regfile_.io.read.rs1_v,
-  //     (cu_.io.ctrl.alu.op1 === ALU_op1_sel.alu_op1sel_PC)   -> (if_.io.out.pc_4 - 4.U)
-  //   )
-  // )
-  // alu_.io.op2_v := Mux1H(
-  //   Seq(
-  //     (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_ZERO) -> 0.U,
-  //     (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_IMM)  -> cu_.io.imm,
-  //     (cu_.io.ctrl.alu.op2 === ALU_op2_sel.alu_op2sel_RS2)  -> regfile_.io.read.rs2_v
-  //   )
-  // )
-
-  // if_.io.in.op := cu_.io.ctrl.npc_op // default: npc_4
-
-  // // beq rs1, rs2, offset => if(rs1==rs2) pc=pc+offset
-  // private val bru_ = Module(new BRU)
-  // bru_.io.in.rs1_v  := regfile_.io.read.rs1_v
-  // bru_.io.in.rs2_v  := regfile_.io.read.rs2_v
-  // bru_.io.in.bru_op := cu_.io.ctrl.bru_op
-  // if_.io.in.br_flag := bru_.io.br_flag // 是否跳转
-
-  // // jalr rd, offset(rs1) => t=pc+4; pc=(rs1_v+offset)&~1; rd_v=t
-  // // jal rd, offset => rd=pc+4; pc=pc+offset
-  // if_.io.in.imm   := cu_.io.imm //
-  // if_.io.in.rs1_v := regfile_.io.read.rs1_v // 只有 jalr 会用
-
+  private val exe2mem_l = EXE2MEMBundle(id2exe_r, exe_.io.alu_out)
   /* ---------- MEM ---------- */
+  private val exe2mem_r = Wire(new EXE2MEMBundle)
+  // pipe(exe2mem_l, exe2mem_r, true.B)
+  exe2mem_r := exe2mem_l
 
   val mem_ = Module(new MemU)
   mem_.io.bus <> io.bus
-  mem_.io.in.op    := cu_.io.ctrl.op_mem
-  mem_.io.in.addr  := exe_.io.alu_out
-  mem_.io.in.wdata := regfile_.io.read.rs2_v
+  mem_.io.in.op    := exe2mem_r.ctrl.op_mem
+  mem_.io.in.addr  := exe2mem_r.alu_out
+  mem_.io.in.wdata := exe2mem_r.read_val.rs2_v
 
   /* ---------- WB ---------- */
 
@@ -150,12 +118,8 @@ class CPUCore extends Module with HasCoreParameter {
 
   io.dbg.wb_have_inst := RegNext(true.B)
   io.dbg.wb_pc        := RegNext(if_.io.out.pc_4 - 4.U)
-  // printf("wb_pc=%x\n", io.debug.wb_pc)
-  // printf("pc_4=%x\n", if_.io.out.pc_4)
-  io.dbg.wb_ena := RegNext(Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B))
-  io.dbg.wb_reg := RegNext(cur_inst(11, 7))
-  // printf("wb_reg=%x\n", io.debug.wb_reg)
-  // printf("wb_value=%x\n", io.debug.wb_value)
+  io.dbg.wb_ena       := RegNext(Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B))
+  io.dbg.wb_reg       := RegNext(cur_inst(11, 7))
   io.dbg.wb_value := RegNext(
     MuxCase(
       0.U,
