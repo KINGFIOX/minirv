@@ -55,10 +55,7 @@ module CU(
   output [2:0]  io_ctrl_wb_sel,
                 io_ctrl_npc_op,
                 io_ctrl_bru_op,
-  output [31:0] io_imm,
-  output [4:0]  io_rf_rs1_i,
-                io_rf_rs2_i,
-                io_rf_rd_i
+  output [31:0] io_imm
 );
 
   wire [9:0]  _GEN = {io_inst[14:12], io_inst[6:0]};
@@ -292,66 +289,60 @@ module CU(
                                                                                                                  io_inst[31:25],
                                                                                                                  io_inst[11:7]}
                                                                                                               : 32'h0;
-  assign io_rf_rs1_i = io_inst[19:15];
-  assign io_rf_rs2_i = io_inst[24:20];
-  assign io_rf_rd_i =
-    _GEN_41
-      ? io_inst[11:7]
-      : _GEN_40
-          ? io_inst[11:7]
-          : _GEN_39
-              ? io_inst[11:7]
-              : _GEN_38
-                  ? io_inst[11:7]
-                  : _GEN_31
-                      ? io_inst[11:7]
-                      : _GEN_30
-                          ? io_inst[11:7]
-                          : _GEN_29
-                              ? io_inst[11:7]
-                              : _GEN_28
-                                  ? io_inst[11:7]
-                                  : _GEN_27
-                                      ? io_inst[11:7]
-                                      : _GEN_25
-                                          ? io_inst[11:7]
-                                          : _GEN_24
-                                              ? io_inst[11:7]
-                                              : _GEN_23
-                                                  ? io_inst[11:7]
-                                                  : _GEN_22
-                                                      ? io_inst[11:7]
-                                                      : _GEN_20
-                                                          ? io_inst[11:7]
-                                                          : _GEN_19
-                                                              ? io_inst[11:7]
-                                                              : _GEN_18
-                                                                  ? io_inst[11:7]
-                                                                  : _GEN_17
-                                                                      ? io_inst[11:7]
-                                                                      : _GEN_16
-                                                                          ? io_inst[11:7]
-                                                                          : _GEN_15
-                                                                              ? io_inst[11:7]
-                                                                              : _GEN_14
-                                                                                  ? io_inst[11:7]
-                                                                                  : _GEN_13
-                                                                                      ? io_inst[11:7]
-                                                                                      : _GEN_12
-                                                                                          ? io_inst[11:7]
-                                                                                          : _GEN_10
-                                                                                              ? io_inst[11:7]
-                                                                                              : _GEN_7
-                                                                                                  ? io_inst[11:7]
-                                                                                                  : _GEN_6
-                                                                                                      ? io_inst[11:7]
-                                                                                                      : _GEN_5
-                                                                                                          ? io_inst[11:7]
-                                                                                                          : _GEN_4
-                                                                                                              ? io_inst[11:7]
-                                                                                                              : _GEN_3
-                                                                                                                  ? io_inst[11:7]
-                                                                                                                  : 5'h0;
+endmodule
+
+// VCS coverage exclude_file
+module _rf_32x32(
+  input  [4:0]  R0_addr,
+  input         R0_en,
+                R0_clk,
+  output [31:0] R0_data,
+  input  [4:0]  R1_addr,
+  input         R1_en,
+                R1_clk,
+  output [31:0] R1_data,
+  input  [4:0]  W0_addr,
+  input         W0_en,
+                W0_clk,
+  input  [31:0] W0_data
+);
+
+  reg [31:0] Memory[0:31];
+  always @(posedge W0_clk) begin
+    if (W0_en & 1'h1)
+      Memory[W0_addr] <= W0_data;
+  end // always @(posedge)
+  assign R0_data = R0_en ? Memory[R0_addr] : 32'bx;
+  assign R1_data = R1_en ? Memory[R1_addr] : 32'bx;
+endmodule
+
+module RegFile(
+  input         clock,
+  input  [31:0] io_inst,
+  output [31:0] io_rs1_v,
+                io_rs2_v,
+  input  [31:0] io_wdata,
+  input         io_wen
+);
+
+  wire [31:0] __rf_ext_R0_data;
+  wire [31:0] __rf_ext_R1_data;
+  _rf_32x32 _rf_ext (
+    .R0_addr (io_inst[24:20]),
+    .R0_en   (1'h1),
+    .R0_clk  (clock),
+    .R0_data (__rf_ext_R0_data),
+    .R1_addr (io_inst[19:15]),
+    .R1_en   (1'h1),
+    .R1_clk  (clock),
+    .R1_data (__rf_ext_R1_data),
+    .W0_addr (io_inst[11:7]),
+    .W0_en   (io_wen & (|(io_inst[11:7]))),
+    .W0_clk  (clock),
+    .W0_data (io_wdata)
+  );
+  assign io_rs1_v = io_inst[19:15] == 5'h0 ? 32'h0 : __rf_ext_R1_data;
+  assign io_rs2_v = io_inst[24:20] == 5'h0 ? 32'h0 : __rf_ext_R0_data;
 endmodule
 
 module ALU(
@@ -492,43 +483,6 @@ module MemU(
       : 32'h0;
 endmodule
 
-// VCS coverage exclude_file
-module _rf_32x32(
-  input  [4:0]  R0_addr,
-  input         R0_en,
-                R0_clk,
-  output [31:0] R0_data,
-  input  [4:0]  R1_addr,
-  input         R1_en,
-                R1_clk,
-  output [31:0] R1_data,
-  input  [4:0]  W0_addr,
-  input         W0_en,
-                W0_clk,
-  input  [31:0] W0_data,
-  input  [4:0]  W1_addr,
-  input         W1_en,
-                W1_clk,
-  input  [31:0] W1_data,
-  input  [4:0]  W2_addr,
-  input         W2_en,
-                W2_clk,
-  input  [31:0] W2_data
-);
-
-  reg [31:0] Memory[0:31];
-  always @(posedge W0_clk) begin
-    if (W0_en & 1'h1)
-      Memory[W0_addr] <= W0_data;
-    if (W1_en & 1'h1)
-      Memory[W1_addr] <= W1_data;
-    if (W2_en & 1'h1)
-      Memory[W2_addr] <= W2_data;
-  end // always @(posedge)
-  assign R0_data = R0_en ? Memory[R0_addr] : 32'bx;
-  assign R1_data = R1_en ? Memory[R1_addr] : 32'bx;
-endmodule
-
 module CPUCore(
   input         clock,
                 reset,
@@ -544,40 +498,39 @@ module CPUCore(
   output [31:0] io_dbg_wb_value
 );
 
-  wire [31:0] _mem__io_rdata;
-  wire        _bru__io_br_flag;
-  wire [31:0] _alu__io_out;
-  wire [31:0] __rf_ext_R0_data;
-  wire [31:0] __rf_ext_R1_data;
-  wire [3:0]  _cu__io_ctrl_alu_calc;
-  wire [1:0]  _cu__io_ctrl_alu_op1;
-  wire [1:0]  _cu__io_ctrl_alu_op2;
-  wire [3:0]  _cu__io_ctrl_op_mem;
-  wire [2:0]  _cu__io_ctrl_wb_sel;
-  wire [2:0]  _cu__io_ctrl_npc_op;
-  wire [2:0]  _cu__io_ctrl_bru_op;
-  wire [31:0] _cu__io_imm;
-  wire [4:0]  _cu__io_rf_rs1_i;
-  wire [4:0]  _cu__io_rf_rs2_i;
-  wire [4:0]  _cu__io_rf_rd_i;
-  wire [31:0] _if__io_out_inst;
-  wire [31:0] _if__io_out_pc_4;
-  wire        _if__io_in_rs1_v_T = _cu__io_rf_rs1_i == 5'h0;
-  wire [31:0] _io_dbg_wb_pc_T = _if__io_out_pc_4 - 32'h4;
-  wire        _mem__io_in_wdata_T = _cu__io_rf_rs2_i == 5'h0;
-  wire        _GEN = _cu__io_ctrl_wb_sel == 3'h0;
-  wire        _GEN_0 = _cu__io_ctrl_wb_sel == 3'h1;
-  wire        _GEN_1 = _cu__io_rf_rd_i == 5'h0;
-  wire        _GEN_2 = _cu__io_ctrl_wb_sel == 3'h2;
-  wire        _GEN_3 = _cu__io_ctrl_wb_sel == 3'h3;
-  reg  [31:0] io_dbg_wb_pc_REG;
-  reg         io_dbg_wb_ena_REG;
-  reg  [4:0]  io_dbg_wb_reg_REG;
-  reg  [31:0] io_dbg_wb_value_REG;
+  wire [31:0]      _mem__io_rdata;
+  wire             _bru__io_br_flag;
+  wire [31:0]      _alu__io_out;
+  wire [31:0]      _regfile__io_rs1_v;
+  wire [31:0]      _regfile__io_rs2_v;
+  wire [3:0]       _cu__io_ctrl_alu_calc;
+  wire [1:0]       _cu__io_ctrl_alu_op1;
+  wire [1:0]       _cu__io_ctrl_alu_op2;
+  wire [3:0]       _cu__io_ctrl_op_mem;
+  wire [2:0]       _cu__io_ctrl_wb_sel;
+  wire [2:0]       _cu__io_ctrl_npc_op;
+  wire [2:0]       _cu__io_ctrl_bru_op;
+  wire [31:0]      _cu__io_imm;
+  wire [31:0]      _if__io_out_inst;
+  wire [31:0]      _if__io_out_pc_4;
+  wire [31:0]      _io_dbg_wb_pc_T = _if__io_out_pc_4 - 32'h4;
+  wire [7:0][31:0] _GEN =
+    {{32'h0},
+     {32'h0},
+     {32'h0},
+     {_if__io_out_pc_4},
+     {_mem__io_rdata},
+     {32'h0},
+     {_alu__io_out},
+     {32'h0}};
+  reg  [31:0]      io_dbg_wb_pc_REG;
+  reg              io_dbg_wb_ena_REG;
+  reg  [4:0]       io_dbg_wb_reg_REG;
+  reg  [31:0]      io_dbg_wb_value_REG;
   always @(posedge clock) begin
     io_dbg_wb_pc_REG <= _io_dbg_wb_pc_T;
     io_dbg_wb_ena_REG <= |_cu__io_ctrl_wb_sel;
-    io_dbg_wb_reg_REG <= _cu__io_rf_rd_i;
+    io_dbg_wb_reg_REG <= _if__io_out_inst[11:7];
     io_dbg_wb_value_REG <=
       _cu__io_ctrl_wb_sel == 3'h1
         ? _alu__io_out
@@ -595,7 +548,7 @@ module CPUCore(
     .io_in_imm     (_cu__io_imm),
     .io_in_br_flag (_bru__io_br_flag),
     .io_in_op      (_cu__io_ctrl_npc_op),
-    .io_in_rs1_v   (_if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data)
+    .io_in_rs1_v   (_regfile__io_rs1_v)
   );
   CU cu_ (
     .io_inst          (_if__io_out_inst),
@@ -606,46 +559,32 @@ module CPUCore(
     .io_ctrl_wb_sel   (_cu__io_ctrl_wb_sel),
     .io_ctrl_npc_op   (_cu__io_ctrl_npc_op),
     .io_ctrl_bru_op   (_cu__io_ctrl_bru_op),
-    .io_imm           (_cu__io_imm),
-    .io_rf_rs1_i      (_cu__io_rf_rs1_i),
-    .io_rf_rs2_i      (_cu__io_rf_rs2_i),
-    .io_rf_rd_i       (_cu__io_rf_rd_i)
+    .io_imm           (_cu__io_imm)
   );
-  _rf_32x32 _rf_ext (
-    .R0_addr (_cu__io_rf_rs2_i),
-    .R0_en   (1'h1),
-    .R0_clk  (clock),
-    .R0_data (__rf_ext_R0_data),
-    .R1_addr (_cu__io_rf_rs1_i),
-    .R1_en   (1'h1),
-    .R1_clk  (clock),
-    .R1_data (__rf_ext_R1_data),
-    .W0_addr (_cu__io_rf_rd_i),
-    .W0_en   (~(_GEN | _GEN_0 | _GEN_2 | _GEN_3) & _cu__io_ctrl_wb_sel == 3'h4),
-    .W0_clk  (clock),
-    .W0_data (_GEN_1 ? 32'h0 : _if__io_out_pc_4),
-    .W1_addr (_cu__io_rf_rd_i),
-    .W1_en   (~(_GEN | _GEN_0 | _GEN_2) & _GEN_3),
-    .W1_clk  (clock),
-    .W1_data (_GEN_1 ? 32'h0 : _mem__io_rdata),
-    .W2_addr (_cu__io_rf_rd_i),
-    .W2_en   (~_GEN & _GEN_0),
-    .W2_clk  (clock),
-    .W2_data (_GEN_1 ? 32'h0 : _alu__io_out)
+  RegFile regfile_ (
+    .clock    (clock),
+    .io_inst  (_if__io_out_inst),
+    .io_rs1_v (_regfile__io_rs1_v),
+    .io_rs2_v (_regfile__io_rs2_v),
+    .io_wdata (_GEN[_cu__io_ctrl_wb_sel]),
+    .io_wen
+      ((|_cu__io_ctrl_wb_sel)
+       & (_cu__io_ctrl_wb_sel == 3'h1 | _cu__io_ctrl_wb_sel != 3'h2
+          & (_cu__io_ctrl_wb_sel == 3'h3 | _cu__io_ctrl_wb_sel == 3'h4)))
   );
   ALU alu_ (
     .io_op1_v
-      ((_cu__io_ctrl_alu_op1 != 2'h1 | _if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data)
+      ((_cu__io_ctrl_alu_op1 == 2'h1 ? _regfile__io_rs1_v : 32'h0)
        | (_cu__io_ctrl_alu_op1 == 2'h2 ? _io_dbg_wb_pc_T : 32'h0)),
     .io_op2_v
       ((_cu__io_ctrl_alu_op2 == 2'h1 ? _cu__io_imm : 32'h0)
-       | (_cu__io_ctrl_alu_op2 != 2'h2 | _mem__io_in_wdata_T ? 32'h0 : __rf_ext_R0_data)),
+       | (_cu__io_ctrl_alu_op2 == 2'h2 ? _regfile__io_rs2_v : 32'h0)),
     .io_alu_op (_cu__io_ctrl_alu_calc),
     .io_out    (_alu__io_out)
   );
   BRU bru_ (
-    .io_in_rs1_v  (_if__io_in_rs1_v_T ? 32'h0 : __rf_ext_R1_data),
-    .io_in_rs2_v  (_mem__io_in_wdata_T ? 32'h0 : __rf_ext_R0_data),
+    .io_in_rs1_v  (_regfile__io_rs1_v),
+    .io_in_rs2_v  (_regfile__io_rs2_v),
     .io_in_bru_op (_cu__io_ctrl_bru_op),
     .io_br_flag   (_bru__io_br_flag)
   );
@@ -654,7 +593,7 @@ module CPUCore(
     .reset        (reset),
     .io_in_op     (_cu__io_ctrl_op_mem),
     .io_in_addr   (_alu__io_out),
-    .io_in_wdata  (_mem__io_in_wdata_T ? 32'h0 : __rf_ext_R0_data),
+    .io_in_wdata  (_regfile__io_rs2_v),
     .io_bus_addr  (io_bus_addr),
     .io_bus_rdata (io_bus_rdata),
     .io_bus_wen   (io_bus_wen),
