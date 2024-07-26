@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 import hitsz.component.CUControlBundle
 import hitsz.common.HasCoreParameter
-import hitsz.component.CURegFileBundle
 
 /** 注意: left -> right, 这是单向的
   */
@@ -17,7 +16,6 @@ object pipe {
 class ID2EXE extends Bundle with HasCoreParameter {
   val ctrl = new CUControlBundle // 控制线
   val imm  = Output(UInt(XLEN.W)) // 立即数: 正常情况下 SignExt, CSR 的时候 ZeroExt
-  val rf   = new CURegFileBundle
 }
 
 object pipeline extends App {

@@ -50,8 +50,7 @@ class CPUCore extends Module with HasCoreParameter {
   cu_.io.inst := cur_inst
 
   val regfile_ = Module(new RegFile)
-  regfile_.io.rs1_i := cu_.io.rf.rs1_i
-  regfile_.io.rs2_i := cu_.io.rf.rs2_i
+  regfile_.io.inst := cur_inst
 
   /* ---------- EXE ---------- */
 
@@ -98,24 +97,24 @@ class CPUCore extends Module with HasCoreParameter {
 
   /* ---------- WB ---------- */
 
-  regfile_.io.waddr := 0.U
   regfile_.io.wdata := 0.U
+  regfile_.io.wen   := false.B
   switch(cu_.io.ctrl.wb_sel) {
     is(WB_sel.wbsel_X) { /* 啥也不干 */ }
     is(WB_sel.wbsel_ALU) {
       // regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
-      regfile_.io.waddr := cu_.io.rf.rd_i
+      regfile_.io.wen   := true.B
       regfile_.io.wdata := alu_.io.out
     }
     is(WB_sel.wbsel_CSR) { /* TODO */ }
     is(WB_sel.wbsel_MEM) {
       // regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata)
-      regfile_.io.waddr := cu_.io.rf.rd_i
+      regfile_.io.wen   := true.B
       regfile_.io.wdata := mem_.io.rdata
     }
     is(WB_sel.wbsel_PC4) {
       // regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
-      regfile_.io.waddr := cu_.io.rf.rd_i
+      regfile_.io.wen   := true.B
       regfile_.io.wdata := if_.io.out.pc_4
     }
   }
@@ -129,7 +128,7 @@ class CPUCore extends Module with HasCoreParameter {
   // printf("wb_pc=%x\n", io.debug.wb_pc)
   // printf("pc_4=%x\n", if_.io.out.pc_4)
   io.dbg.wb_ena := RegNext(Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B))
-  io.dbg.wb_reg := RegNext(cu_.io.rf.rd_i)
+  io.dbg.wb_reg := RegNext(cur_inst(11, 7))
   // printf("wb_reg=%x\n", io.debug.wb_reg)
   // printf("wb_value=%x\n", io.debug.wb_value)
   io.dbg.wb_value := RegNext(

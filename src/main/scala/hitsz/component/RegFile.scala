@@ -14,20 +14,23 @@ object WB_sel extends ChiselEnum {
   */
 class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
   val io = IO(new Bundle {
-    val rs1_i = Input(UInt(NRReg.W))
+    val inst  = Input(UInt(XLEN.W))
     val rs1_v = Output(UInt(XLEN.W))
-    val rs2_i = Input(UInt(NRReg.W))
     val rs2_v = Output(UInt(XLEN.W))
-    val waddr = Input(UInt(NRReg.W))
     val wdata = Input(UInt(XLEN.W))
+    val wen   = Input(Bool())
   })
   private val _rf = Mem(NRReg, UInt(XLEN.W))
 
-  io.rs1_v := Mux(io.rs1_i === 0.U, 0.U, _rf(io.rs1_i))
-  io.rs2_v := Mux(io.rs2_i === 0.U, 0.U, _rf(io.rs2_i))
+  val rs1_i = io.inst(19, 15)
+  val rs2_i = io.inst(24, 20)
+  val rd_i  = io.inst(11, 7)
 
-  when(io.waddr =/= 0.U) {
-    _rf(io.waddr) := io.wdata
+  io.rs1_v := Mux(rs1_i === 0.U, 0.U, _rf(rs1_i))
+  io.rs2_v := Mux(rs2_i === 0.U, 0.U, _rf(rs2_i))
+
+  when(io.wen && (rd_i =/= 0.U)) {
+    _rf(rd_i) := io.wdata
   }
 
   // def read(addr: UInt): UInt        = Mux(addr === 0.U, 0.U, _rf(addr))

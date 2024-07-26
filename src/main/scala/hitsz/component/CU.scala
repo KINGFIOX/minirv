@@ -51,15 +51,6 @@ class CUControlBundle extends Bundle {
 }
 
 /** @brief
-  *   这里 _i 表示 index
-  */
-class CURegFileBundle extends Bundle with HasRegFileParameter {
-  val rs1_i = Output(UInt(NRRegbits.W))
-  val rs2_i = Output(UInt(NRRegbits.W))
-  val rd_i  = Output(UInt(NRRegbits.W))
-}
-
-/** @brief
   *   解码，会生成一排控制信号。然后也会进行符号拓展操作, 输出寄存器的编号
   */
 class CU extends Module with HasCoreParameter with HasRegFileParameter {
@@ -67,7 +58,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     val inst = Input(UInt(XLEN.W))
     val ctrl = new CUControlBundle // 控制线
     val imm  = Output(UInt(XLEN.W)) // 立即数: 正常情况下 SignExt, CSR 的时候 ZeroExt
-    val rf   = new CURegFileBundle
   })
 
   // 最常见的还是 pc + 4
@@ -85,11 +75,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
 
   // 立即数
   io.imm := 0.U
-
-  // 寄存器
-  io.rf.rs1_i := io.inst(19, 15)
-  io.rf.rs2_i := io.inst(24, 20)
-  io.rf.rd_i  := 0.U /* 默认是不写入 */
 
   /* ---------- store ---------- */
 
@@ -121,7 +106,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm           := SignExt(io.inst(31, 20))
     io.ctrl.op_mem   := op
     io.ctrl.wb_sel   := WB_sel.wbsel_MEM
-    io.rf.rd_i       := io.inst(11, 7)
   }
   when(io.inst === Instructions.LB) {
     load_inst(MemUOpType.mem_LB)
@@ -147,7 +131,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_RS2
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
-    io.rf.rd_i       := io.inst(11, 7)
   }
   when(io.inst === Instructions.ADD) {
     R_inst(ALUOpType.alu_ADD)
@@ -187,7 +170,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
     io.imm           := SignExt(io.inst(31, 20))
-    io.rf.rd_i       := io.inst(11, 7)
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
   when(io.inst === Instructions.ADDI) {
@@ -251,7 +233,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm         := SignExt(io.inst(31, 20))
     io.ctrl.npc_op := NPCOpType.npc_JALR
     io.ctrl.wb_sel := WB_sel.wbsel_PC4
-    io.rf.rd_i     := io.inst(11, 7)
   }
 
   /* ---------- JAL ---------- */
@@ -260,7 +241,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm         := SignExt(io.inst(31) /* 20 */ ## io.inst(19, 12) /* 19:12 */ ## io.inst(20) /* 11 */ ## io.inst(30, 21) /* 10:1 */ ## 0.U(1.W) /* 0 */ )
     io.ctrl.npc_op := NPCOpType.npc_JAL
     io.ctrl.wb_sel := WB_sel.wbsel_PC4
-    io.rf.rd_i     := io.inst(11, 7)
     // JALlog(
     //   SignExt(io.inst(31) /* 20 */ ## io.inst(19, 12) /* 19:12 */ ## io.inst(20) /* 11 */ ## io.inst(30, 21) /* 10:1 */ ## 0.U(1.W) /* 0 */ ),
     //   NPCOpType.npc_JAL,
@@ -276,7 +256,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_ZERO /* 就是啥也不干 */
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
     io.imm           := io.inst(31, 12) ## 0.U(12.W) /* 当然这个移位步骤可以移到 ALU(EXE-stage) */
-    io.rf.rd_i       := io.inst(11, 7)
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
 
@@ -287,7 +266,6 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_PC
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
     io.imm           := io.inst(31, 12) ## 0.U(12.W)
-    io.rf.rd_i       := io.inst(11, 7)
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
   }
 
