@@ -46,6 +46,7 @@ class CUControlBundle extends Bundle {
   val alu    = new ALUOPBundle
   val op_mem = Output(MemUOpType())
   val wb_sel = Output(WB_sel())
+  val wb_wen = Output(Bool())
   val npc_op = Output(NPCOpType())
   val bru_op = Output(BRUOpType())
 }
@@ -72,6 +73,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
   io.ctrl.op_mem   := MemUOpType.mem_X
   io.ctrl.wb_sel   := WB_sel.wbsel_X
   io.ctrl.bru_op   := BRUOpType.bru_X
+  io.ctrl.wb_wen   := false.B
 
   // 立即数
   io.imm := 0.U
@@ -106,6 +108,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm           := SignExt(io.inst(31, 20))
     io.ctrl.op_mem   := op
     io.ctrl.wb_sel   := WB_sel.wbsel_MEM
+    io.ctrl.wb_wen   := true.B
   }
   when(io.inst === Instructions.LB) {
     load_inst(MemUOpType.mem_LB)
@@ -131,6 +134,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op1  := ALU_op1_sel.alu_op1sel_RS1
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_RS2
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
+    io.ctrl.wb_wen   := true.B
   }
   when(io.inst === Instructions.ADD) {
     R_inst(ALUOpType.alu_ADD)
@@ -171,6 +175,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
     io.imm           := SignExt(io.inst(31, 20))
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
+    io.ctrl.wb_wen   := true.B
   }
   when(io.inst === Instructions.ADDI) {
     Imm_inst(ALUOpType.alu_ADD)
@@ -233,6 +238,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm         := SignExt(io.inst(31, 20))
     io.ctrl.npc_op := NPCOpType.npc_JALR
     io.ctrl.wb_sel := WB_sel.wbsel_PC4
+    io.ctrl.wb_wen := true.B
   }
 
   /* ---------- JAL ---------- */
@@ -241,6 +247,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.imm         := SignExt(io.inst(31) /* 20 */ ## io.inst(19, 12) /* 19:12 */ ## io.inst(20) /* 11 */ ## io.inst(30, 21) /* 10:1 */ ## 0.U(1.W) /* 0 */ )
     io.ctrl.npc_op := NPCOpType.npc_JAL
     io.ctrl.wb_sel := WB_sel.wbsel_PC4
+    io.ctrl.wb_wen := true.B
     // JALlog(
     //   SignExt(io.inst(31) /* 20 */ ## io.inst(19, 12) /* 19:12 */ ## io.inst(20) /* 11 */ ## io.inst(30, 21) /* 10:1 */ ## 0.U(1.W) /* 0 */ ),
     //   NPCOpType.npc_JAL,
@@ -257,6 +264,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
     io.imm           := io.inst(31, 12) ## 0.U(12.W) /* 当然这个移位步骤可以移到 ALU(EXE-stage) */
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
+    io.ctrl.wb_wen   := true.B
   }
 
   /* ---------- AUIPC ---------- */
@@ -267,6 +275,7 @@ class CU extends Module with HasCoreParameter with HasRegFileParameter {
     io.ctrl.alu.op2  := ALU_op2_sel.alu_op2sel_IMM
     io.imm           := io.inst(31, 12) ## 0.U(12.W)
     io.ctrl.wb_sel   := WB_sel.wbsel_ALU
+    io.ctrl.wb_wen   := true.B
   }
 
   // /* ---------- CSR ---------- */

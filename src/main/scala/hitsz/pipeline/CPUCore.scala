@@ -55,10 +55,11 @@ class CPUCore extends Module with HasCoreParameter {
   regfile_.io.read.rs2_i := cur_inst(24, 20)
   regfile_.io.write.rd_i := cur_inst(11, 7)
 
-  // val rs1_i = io.inst(19, 15)
-  // val rs2_i = io.inst(24, 20)
-  // val rd_i  = io.inst(11, 7)
-
+  // val id2exe_l = Flipped(new ID2EXEBundle)
+  // id2exe_l.cu.ctrl       := cu_.io.ctrl
+  // id2exe_l.cu.imm        := cu_.io.imm
+  // id2exe_l.rf.write.rd_i := cur_inst(11, 7)
+  // // id2exe_l.rf.read.
   /* ---------- EXE ---------- */
 
   val alu_ = Module(new ALU)
@@ -105,23 +106,20 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- WB ---------- */
 
   regfile_.io.write.wdata := 0.U
-  regfile_.io.write.wen   := false.B
+  regfile_.io.write.wen   := cu_.io.ctrl.wb_wen
   switch(cu_.io.ctrl.wb_sel) {
     is(WB_sel.wbsel_X) { /* 啥也不干 */ }
     is(WB_sel.wbsel_ALU) {
       // regfile_.write(cu_.io.rf.rd_i, alu_.io.out)
-      regfile_.io.write.wen   := true.B
       regfile_.io.write.wdata := alu_.io.out
     }
     is(WB_sel.wbsel_CSR) { /* TODO */ }
     is(WB_sel.wbsel_MEM) {
       // regfile_.write(cu_.io.rf.rd_i, mem_.io.rdata)
-      regfile_.io.write.wen   := true.B
       regfile_.io.write.wdata := mem_.io.rdata
     }
     is(WB_sel.wbsel_PC4) {
       // regfile_.write(cu_.io.rf.rd_i, if_.io.out.pc_4)
-      regfile_.io.write.wen   := true.B
       regfile_.io.write.wdata := if_.io.out.pc_4
     }
   }
