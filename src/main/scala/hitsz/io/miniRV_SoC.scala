@@ -12,8 +12,8 @@ import hitsz.pipeline.CPUCore
 import hitsz.io.device.Bridge
 import hitsz.io.blackbox.IROM
 import hitsz.io.trace.DRAM
+import hitsz.io.trace.DebugBundle
 import hitsz.io.device.SevenSegDigital
-import hitsz.io.DebugBundle
 import hitsz.ENV
 
 trait HasSocParameter {

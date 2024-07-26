@@ -11,4 +11,7 @@ object pipe {
   def apply[T <: Data](left: T, right: T, wen: Bool) = {
     right := RegEnable(left, wen)
   }
+  def apply[T <: Data](left: T, wen: Bool): T = {
+    RegEnable(left, wen)
+  }
 }

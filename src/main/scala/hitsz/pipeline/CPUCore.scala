@@ -15,7 +15,7 @@ import hitsz.component.WB_sel
 import hitsz.component.BRU
 
 import hitsz.io.blackbox.InstROMBundle
-import hitsz.io.DebugBundle
+import hitsz.io.trace.DebugBundle
 import hitsz.utils.pipe
 
 /** @brief
@@ -42,24 +42,23 @@ class CPUCore extends Module with HasCoreParameter {
   private val if_ = Module(new IF) // Instruction Fetch: NPC + PC
   io.irom <> if_.io.irom
 
-  private val cur_inst = if_.io.out.inst
-  private val pc_4     = if_.io.out.pc_4
-
+  private val inst_l = if_.io.out.inst
   /* ---------- ID ---------- */
+  // val inst_r = pipe(inst_l, true.B)
+  val inst_r = inst_l
 
   private val cu_ = Module(new CU)
-  cu_.io.inst := cur_inst
+  cu_.io.inst := inst_r
 
   private val regfile_ = Module(new RegFile)
-  // regfile_.io.inst := cur_inst
-  regfile_.io.read.rs1_i := cur_inst(19, 15)
-  regfile_.io.read.rs2_i := cur_inst(24, 20)
-  regfile_.io.write.rd_i := cur_inst(11, 7)
+  regfile_.io.read.rs1_i := inst_r(19, 15)
+  regfile_.io.read.rs2_i := inst_r(24, 20)
+  regfile_.io.write.rd_i := inst_r(11, 7)
 
   private val id2exe_l = ID2EXEBundle(
     cu_.io.ctrl,
     cu_.io.imm,
-    cur_inst,
+    inst_r,
     regfile_.io.read.rs1_v,
     regfile_.io.read.rs2_v,
     if_.io.out.pc_4 - 4.U
@@ -112,7 +111,7 @@ class CPUCore extends Module with HasCoreParameter {
   io.dbg.wb_have_inst := RegNext(true.B)
   io.dbg.wb_pc        := RegNext(if_.io.out.pc_4 - 4.U)
   io.dbg.wb_ena       := RegNext(Mux(cu_.io.ctrl.wb_sel =/= WB_sel.wbsel_X, true.B, false.B))
-  io.dbg.wb_reg       := RegNext(cur_inst(11, 7))
+  io.dbg.wb_reg       := RegNext(inst_r(11, 7))
   io.dbg.wb_value := RegNext(
     MuxCase(
       0.U,

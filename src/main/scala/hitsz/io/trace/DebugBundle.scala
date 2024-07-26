@@ -1,4 +1,4 @@
-package hitsz.io
+package hitsz.io.trace
 
 import chisel3._
 import chisel3.util._

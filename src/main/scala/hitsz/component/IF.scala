@@ -19,7 +19,7 @@ class IF_ID_Bundle extends Bundle with HasCoreParameter {
 }
 
 object NPCOpType extends ChiselEnum {
-  val npc_X /* stall */, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
+  val npc_X, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
 }
 
 /** @brief
@@ -40,9 +40,9 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     // val debug =
   })
 
-  private val pc = RegInit(UInt(XLEN.W), 0.U) // pc = 0
-
   /* ---------- pc_cur ---------- */
+
+  private val pc = RegInit(UInt(XLEN.W), 0.U) // pc = 0
 
   io.irom.addr := pc
   io.out.inst  := io.irom.inst
@@ -52,28 +52,40 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   // 设置下一个时钟上升沿, pc
 
-  switch(io.in.npc_op) {
-    is(NPCOpType.npc_X) { /* 啥也不干 */ }
-    is(NPCOpType.npc_4) {
-      pc := pc + 4.U
-    }
-    is(NPCOpType.npc_BR) {
-      when(io.in.br_flag) {
-        pc := pc + io.in.imm
-      }.otherwise {
-        pc := pc + 4.U
-      }
-    }
-    is(NPCOpType.npc_JAL) {
-      pc := pc + io.in.imm
-    }
-    is(NPCOpType.npc_JALR) {
-      pc := (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W)
-    }
-    // is(NPCOpType.npc_ECALL) {
-    //   pc := ECALL_ADDRESS.U
-    // }
-  }
+  val npc = MuxCase(
+    pc + 4.U,
+    Seq(
+      (io.in.npc_op === NPCOpType.npc_X, pc),
+      (io.in.npc_op === NPCOpType.npc_BR, Mux(io.in.br_flag, pc + io.in.imm, pc + 4.U)),
+      (io.in.npc_op === NPCOpType.npc_JAL, pc + io.in.imm),
+      (io.in.npc_op === NPCOpType.npc_JALR, (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W))
+    )
+  )
+
+  pc := npc
+
+  // switch(io.in.npc_op) {
+  //   is(NPCOpType.npc_X) { /* 啥也不干 */ }
+  //   is(NPCOpType.npc_4) {
+  //     pc := pc + 4.U
+  //   }
+  //   is(NPCOpType.npc_BR) {
+  //     when(io.in.br_flag) {
+  //       pc := pc + io.in.imm
+  //     }.otherwise {
+  //       pc := pc + 4.U
+  //     }
+  //   }
+  //   is(NPCOpType.npc_JAL) {
+  //     pc := pc + io.in.imm
+  //   }
+  //   is(NPCOpType.npc_JALR) {
+  //     pc := (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W)
+  //   }
+  //   // is(NPCOpType.npc_ECALL) {
+  //   //   pc := ECALL_ADDRESS.U
+  //   // }
+  // }
 
 }
 
