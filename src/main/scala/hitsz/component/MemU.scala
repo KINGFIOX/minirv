@@ -30,6 +30,7 @@ class MemU extends Module with HasCoreParameter {
   val io = IO(new Bundle {
     val in    = new EXE_MEM_Bundle
     val bus   = new BusBundle // 与总线连接, CPUCore 也要有这个
+    val valid = Input(Bool())
     val rdata = Output(UInt(XLEN.W))
   })
 
@@ -86,19 +87,19 @@ class MemU extends Module with HasCoreParameter {
       val byte = io.in.wdata(7, 0) // 取出来一个字节
       val zero = 0.U(XLEN.W).asTypeOf(Vec(dataBytes, UInt(8.W)))
       zero(subword) := byte
-      io.bus.wdata  := zero.asUInt
+      io.bus.wdata  := Mux(io.valid, zero.asUInt, 0.U)
       io.bus.wen    := subword1H
     }
     is(MemUOpType.mem_SH) {
       when(subword === 0.U) {
         val byte2 = io.in.wdata(15, 0)
         io.bus.wdata := 0.U(16.W) ## byte2
-        io.bus.wen   := "b0011".U(dataBytes.W) // 害, 这个参数化, 难绷
+        io.bus.wen   := Mux(io.valid, "b0011".U(dataBytes.W), 0.U) // 害, 这个参数化, 难绷
       }
       when(subword === 2.U) {
         val byte2 = io.in.wdata(15, 0)
         io.bus.wdata := byte2 ## 0.U(16.W)
-        io.bus.wen   := "b1100".U(dataBytes.W)
+        io.bus.wen   := Mux(io.valid, "b1100".U(dataBytes.W), 0.U)
       }
       when(subword === 1.U || subword === 3.U) {
         printf("Unaligned memory access at %x\n", io.in.addr)
@@ -106,7 +107,7 @@ class MemU extends Module with HasCoreParameter {
     }
     is(MemUOpType.mem_SW) {
       when(subword === 0.U) {
-        io.bus.wen := "b1111".U(dataBytes.W) // 害, 这个参数化, 难绷
+        io.bus.wen := Mux(io.valid, "b1111".U(dataBytes.W), 0.U)
       }.otherwise {
         printf("Unaligned memory access at %x\n", io.in.addr)
       }

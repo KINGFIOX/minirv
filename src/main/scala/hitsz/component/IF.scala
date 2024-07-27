@@ -13,13 +13,17 @@ import hitsz.io.blackbox.InstROMBundle
 /** @brief
   *   IF -> ID 之间连接的线
   */
-class IF_ID_Bundle extends Bundle with HasCoreParameter {
-  val inst = Output(UInt(XLEN.W))
-  val pc_4 = Output(UInt(XLEN.W))
+class IF2IDBundle extends Bundle with HasCoreParameter {
+  val inst  = Output(UInt(XLEN.W))
+  val pc    = Output(UInt(XLEN.W))
+  val valid = Output(Bool())
 }
 
-object NPCOpType extends ChiselEnum {
-  val npc_X, npc_4, npc_BR, npc_JAL, npc_JALR, npc_ECALL = Value
+/** @brief
+  *   这个记录的是: 无条件跳转
+  */
+object JMPOpType extends ChiselEnum {
+  val jmp_X, jmp_JAL, jmp_JALR, jmp_ECALL, jmp_ERET = Value
 }
 
 /** @brief
@@ -28,15 +32,40 @@ object NPCOpType extends ChiselEnum {
 class IFBundle extends Bundle with HasCoreParameter {
   val imm     = Input(UInt(XLEN.W)) // br/jal 是 offset
   val br_flag = Input(Bool())
-  val npc_op  = Input(NPCOpType())
   val rs1_v   = Input(UInt(XLEN.W)) // jalr 就是绝对地址
+}
+
+class JMPBundle extends Bundle with HasCoreParameter {
+  val op    = Output(JMPOpType())
+  val imm   = Output(UInt(XLEN.W))
+  val pc    = Output(UInt(XLEN.W))
+  val rs1_v = Output(UInt(XLEN.W))
+}
+
+object JMPBundle {
+  def apply(op: JMPOpType.Type, imm: UInt, pc: UInt, rs1_v: UInt): JMPBundle = {
+    val jmp = Wire(Flipped(new JMPBundle))
+    jmp.op    := op
+    jmp.imm   := imm
+    jmp.pc    := pc
+    jmp.rs1_v := rs1_v
+    jmp
+  }
+}
+
+class BRU2IFBundle extends Bundle with HasCoreParameter {
+  val pc      = Output(UInt(XLEN.W))
+  val imm     = Output(UInt(XLEN.W))
+  val br_flag = Output(Bool())
 }
 
 class IF extends Module with HasCoreParameter with HasECALLParameter {
   val io = IO(new Bundle {
     val irom = Flipped(new InstROMBundle)
-    val out  = new IF_ID_Bundle // 取指令输出, pc4 输出
-    val in   = new IFBundle
+    val out  = new IF2IDBundle // 取指令输出, pc4 输出
+    // val in   = new IFBundle
+    val jmp = Flipped(new JMPBundle)
+    val br  = Flipped(new BRU2IFBundle)
     // val debug =
   })
 
@@ -46,19 +75,35 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   io.irom.addr := pc
   io.out.inst  := io.irom.inst
-  io.out.pc_4  := pc + 4.U
+  io.out.pc    := pc
+
+  when(io.jmp.op === JMPOpType.jmp_X && ~io.br.br_flag) {
+    io.out.valid := true.B
+  }.otherwise {
+    io.out.valid := false.B
+  }
 
   /* ---------- pc_next ---------- */
 
   // 设置下一个时钟上升沿, pc
 
+  // val npc = MuxCase(
+  //   pc + 4.U,
+  //   Seq(
+  //     (io.in.npc_op === NPCOpType.npc_X, pc),
+  //     (io.in.npc_op === NPCOpType.npc_BR, Mux(io.in.br_flag, pc + io.in.imm, pc + 4.U)),
+  //     (io.in.npc_op === NPCOpType.npc_JAL, pc + io.in.imm),
+  //     (io.in.npc_op === NPCOpType.npc_JALR, (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W))
+  //   )
+  // )
+
   val npc = MuxCase(
     pc + 4.U,
     Seq(
-      (io.in.npc_op === NPCOpType.npc_X, pc),
-      (io.in.npc_op === NPCOpType.npc_BR, Mux(io.in.br_flag, pc + io.in.imm, pc + 4.U)),
-      (io.in.npc_op === NPCOpType.npc_JAL, pc + io.in.imm),
-      (io.in.npc_op === NPCOpType.npc_JALR, (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W))
+      (io.br.br_flag, io.br.pc + io.br.imm), // 发现跳转
+      (io.jmp.op === JMPOpType.jmp_JAL, io.jmp.pc + io.jmp.imm),
+      (io.jmp.op === JMPOpType.jmp_JALR, (io.jmp.imm + io.jmp.imm) & ~1.U(XLEN.W)),
+      (io.jmp.op === JMPOpType.jmp_ECALL, ECALL_ADDRESS.U)
     )
   )
 

@@ -13,7 +13,7 @@ trait Consts {}
   */
 trait HasRegFileParameter {
   val NRReg     = 32
-  val NRRegbits = log2Up(NRReg)
+  val NRRegbits = log2Up(NRReg) // 5
 }
 
 trait HasECALLParameter {

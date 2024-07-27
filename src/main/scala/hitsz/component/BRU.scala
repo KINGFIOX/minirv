@@ -12,15 +12,14 @@ object BRUOpType extends ChiselEnum {
   val bru_X, bru_BLT, bru_BLTU, bru_BGE, bru_BGEU, bru_BEQ, bru_BNE = Value
 }
 
-class BRUInBundle extends Bundle with HasCoreParameter {
-  val rs1_v  = Input(UInt(XLEN.W))
-  val rs2_v  = Input(UInt(XLEN.W))
-  val bru_op = Input(BRUOpType())
-}
-
 class BRU extends Module with HasCoreParameter {
   val io = IO(new Bundle {
-    val in      = new BRUInBundle
+    val in = new Bundle {
+      val bru_op = Input(BRUOpType())
+      val rs1_v  = Input(UInt(XLEN.W))
+      val rs2_v  = Input(UInt(XLEN.W))
+    }
+    // val br_flag = Output(Bool())
     val br_flag = Output(Bool())
   })
 

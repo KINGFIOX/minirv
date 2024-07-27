@@ -25,7 +25,7 @@ class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
     val write = new Bundle {
       val rd_i  = Input(UInt(NRRegbits.W))
       val wdata = Input(UInt(XLEN.W))
-      val wen   = Input(Bool())
+      val valid = Input(Bool())
     }
   })
   private val _rf = Mem(NRReg, UInt(XLEN.W))
@@ -33,7 +33,7 @@ class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
   io.read.rs1_v := Mux(io.read.rs1_i === 0.U, 0.U, _rf(io.read.rs1_i))
   io.read.rs2_v := Mux(io.read.rs2_i === 0.U, 0.U, _rf(io.read.rs2_i))
 
-  when(io.write.wen && (io.write.rd_i =/= 0.U)) {
+  when(io.write.valid && (io.write.rd_i =/= 0.U)) {
     _rf(io.write.rd_i) := io.write.wdata
   }
 

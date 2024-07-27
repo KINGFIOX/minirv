@@ -2,7 +2,6 @@ package hitsz.utils
 
 import chisel3._
 import chisel3.util._
-import hitsz.component.CUControlBundle
 import hitsz.common.HasCoreParameter
 
 /** 注意: left -> right, 这是单向的
