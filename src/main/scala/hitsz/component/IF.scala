@@ -65,7 +65,10 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     val out  = new IF2IDBundle // 取指令输出, pc4 输出
     // val in   = new IFBundle
     val jmp = Flipped(new JMPBundle)
-    val br  = Flipped(new BRU2IFBundle)
+    val br = new Bundle {
+      val exe_br  = Flipped(new BRU2IFBundle)
+      val id_isBr = Input(Bool())
+    }
     // val debug =
   })
 
@@ -77,10 +80,21 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   io.out.inst  := io.irom.inst
   io.out.pc    := pc
 
-  when(io.jmp.op === JMPOpType.jmp_X && ~io.br.br_flag) {
-    io.out.valid := true.B
-  }.otherwise {
+  io.out.valid := true.B // 默认是 true
+
+  when(io.jmp.op =/= JMPOpType.jmp_X) {
     io.out.valid := false.B
+    io.out.inst  := 0x0000_0013.U
+  }
+
+  when(io.br.id_isBr) { // 插入气泡
+    io.out.valid := false.B
+    io.out.inst  := 0x0000_0013.U
+  }
+
+  when(io.br.exe_br.br_flag) {
+    io.out.valid := false.B
+    io.out.inst  := 0x0000_0013.U
   }
 
   /* ---------- pc_next ---------- */
@@ -100,7 +114,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   val npc = MuxCase(
     pc + 4.U,
     Seq(
-      (io.br.br_flag, io.br.pc + io.br.imm), // 发现跳转
+      (io.br.exe_br.br_flag, io.br.exe_br.pc + io.br.exe_br.imm),
       (io.jmp.op === JMPOpType.jmp_JAL, io.jmp.pc + io.jmp.imm),
       (io.jmp.op === JMPOpType.jmp_JALR, (io.jmp.imm + io.jmp.imm) & ~1.U(XLEN.W)),
       (io.jmp.op === JMPOpType.jmp_ECALL, ECALL_ADDRESS.U)

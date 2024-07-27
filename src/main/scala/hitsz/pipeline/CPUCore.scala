@@ -18,6 +18,7 @@ import hitsz.io.blackbox.InstROMBundle
 import hitsz.io.trace.DebugBundle
 import hitsz.utils.pipe
 import hitsz.component.JMPBundle
+import hitsz.component.BRUOpType
 
 /** @brief
   *   这个是站在 CPU 视角的, 总线, 与 DRAM 交互的
@@ -65,9 +66,12 @@ class CPUCore extends Module with HasCoreParameter {
   // jmp
   if_.io.jmp := JMPBundle(cu_.io.jmp_op, cu_.io.imm, if_r.pc, rs1_v) // 传递给 if_ ， 为了处理 无条件跳转的 控制冒险
 
+  // id_br
+  if_.io.br.id_isBr := (cu_.io.bru_op =/= BRUOpType.bru_X)
+
   val id2exe_l = Wire(Flipped(new ID2EXEBundle))
-  id2exe_l.pc := if_r.pc
-  // id2exe_l.valid    := if_r.valid
+  id2exe_l.pc       := if_r.pc
+  id2exe_l.valid    := if_r.valid
   id2exe_l.rf       := RFRead(rs1_i, rs2_i, rd_i, rs1_v, rs2_v)
   id2exe_l.alu_ctrl := cu_.io.alu_ctrl
   id2exe_l.bru_op   := cu_.io.bru_op
@@ -96,7 +100,6 @@ class CPUCore extends Module with HasCoreParameter {
       (id2exe_r.alu_ctrl.op2_sel === ALU_op2_sel.alu_op2sel_RS2)  -> id2exe_r.rf.vals.rs2
     )
   )
-  // val alu_out = alu_.io.out
 
   // ***** bru *****
   // beq rs1, rs2, offset => if(rs1==rs2) pc=pc+offset
@@ -105,10 +108,10 @@ class CPUCore extends Module with HasCoreParameter {
   bru_.io.in.rs2_v  := id2exe_r.rf.vals.rs2
   bru_.io.in.bru_op := id2exe_r.bru_op
 
-  if_.io.br.br_flag := bru_.io.br_flag & if_r.valid // 只有这条指令有效的时候, 才允许跳转
-  if_.io.br.imm     := id2exe_r.imm
-  if_.io.br.pc      := id2exe_r.pc
-  id2exe_l.valid    := if_r.valid & ~bru_.io.br_flag // FIXME 这是修改下一条指令的 valid
+  // if_ <- exe_br
+  if_.io.br.exe_br.br_flag := bru_.io.br_flag
+  if_.io.br.exe_br.imm     := id2exe_r.imm
+  if_.io.br.exe_br.pc      := id2exe_r.pc
 
   private val exe2mem_l = Wire(Flipped(new EXE2MEMBundle))
   exe2mem_l.mem     := id2exe_r.mem
@@ -156,6 +159,10 @@ class CPUCore extends Module with HasCoreParameter {
   )
   regfile_.io.write.wdata := wdata
 
+  /* ---------- debug ---------- */
+
+  // 这个 debug 的线，正好差了一个周期，懒得整了，直接 RegNext
+
   val wen = MuxCase(
     false.B,
     Seq(
@@ -165,14 +172,10 @@ class CPUCore extends Module with HasCoreParameter {
     )
   )
 
-  /* ---------- debug ---------- */
-
-  // 这个 debug 的线，正好差了一个周期，懒得整了，直接 RegNext
-
-  io.dbg.wb_have_inst := RegNext(mem2wb_r.valid)
-  io.dbg.wb_pc        := RegNext(mem2wb_r.data.pc)
-  io.dbg.wb_ena       := RegNext(wen)
-  io.dbg.wb_reg       := RegNext(mem2wb_r.rf.idxes.rd)
+  io.dbg.wb_have_inst := mem2wb_r.valid
+  io.dbg.wb_pc        := mem2wb_r.data.pc
+  io.dbg.wb_ena       := wen
+  io.dbg.wb_reg       := mem2wb_r.rf.idxes.rd
   io.dbg.wb_value     := wdata
   // val rd = cu_.io.rf.rd_i
 }
