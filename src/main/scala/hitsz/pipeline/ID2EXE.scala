@@ -53,3 +53,20 @@ class ID2EXEBundle extends Bundle with HasCoreParameter with HasRegFileParameter
   val mem      = Output(MemUOpType()) // cu_.imm
   val imm      = Output(UInt(XLEN.W)) // cu_.imm
 }
+
+object ID2EXEBundle {
+
+  def apply(pc: UInt, valid: Bool, rf: RFRead, alu_ctrl: ALUOPBundle, bru_op: BRUOpType.Type, wb: WBBundle, mem: MemUOpType.Type, imm: UInt): ID2EXEBundle = {
+    val id2exe_l = Wire(Flipped(new ID2EXEBundle))
+    id2exe_l.pc       := pc // if_r.pc
+    id2exe_l.valid    := valid // if_r.valid
+    id2exe_l.rf       := rf // RFRead(rs1_i, rs2_i, rd_i, rs1_v, rs2_v)
+    id2exe_l.alu_ctrl := alu_ctrl // cu_.io.alu_ctrl
+    id2exe_l.bru_op   := bru_op // cu_.io.bru_op
+    id2exe_l.wb       := wb // cu_.io.wb
+    id2exe_l.mem      := mem // cu_.io.mem
+    id2exe_l.imm      := imm // cu_.io.imm
+    id2exe_l
+  }
+
+}

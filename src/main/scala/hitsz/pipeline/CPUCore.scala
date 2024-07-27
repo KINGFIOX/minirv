@@ -69,15 +69,25 @@ class CPUCore extends Module with HasCoreParameter {
   // id_br
   if_.io.br.id_isBr := (cu_.io.bru_op =/= BRUOpType.bru_X)
 
-  val id2exe_l = Wire(Flipped(new ID2EXEBundle))
-  id2exe_l.pc       := if_r.pc
-  id2exe_l.valid    := if_r.valid
-  id2exe_l.rf       := RFRead(rs1_i, rs2_i, rd_i, rs1_v, rs2_v)
-  id2exe_l.alu_ctrl := cu_.io.alu_ctrl
-  id2exe_l.bru_op   := cu_.io.bru_op
-  id2exe_l.wb       := cu_.io.wb
-  id2exe_l.mem      := cu_.io.mem
-  id2exe_l.imm      := cu_.io.imm
+  // val id2exe_l = Wire(Flipped(new ID2EXEBundle))
+  // id2exe_l.pc       := if_r.pc
+  // id2exe_l.valid    := if_r.valid
+  // id2exe_l.rf       := RFRead(rs1_i, rs2_i, rd_i, rs1_v, rs2_v)
+  // id2exe_l.alu_ctrl := cu_.io.alu_ctrl
+  // id2exe_l.bru_op   := cu_.io.bru_op
+  // id2exe_l.wb       := cu_.io.wb
+  // id2exe_l.mem      := cu_.io.mem
+  // id2exe_l.imm      := cu_.io.imm
+  private val id2exe_l = ID2EXEBundle(
+    if_r.pc,
+    if_r.valid,
+    RFRead(rs1_i, rs2_i, rd_i, rs1_v, rs2_v),
+    cu_.io.alu_ctrl,
+    cu_.io.bru_op,
+    cu_.io.wb,
+    cu_.io.mem,
+    cu_.io.imm
+  )
   /* ---------- ---------- EXE ---------- ---------- */
   private val id2exe_r = Wire(new ID2EXEBundle)
   pipe(id2exe_l, id2exe_r, true.B)
@@ -113,13 +123,21 @@ class CPUCore extends Module with HasCoreParameter {
   if_.io.br.exe_br.imm     := id2exe_r.imm
   if_.io.br.exe_br.pc      := id2exe_r.pc
 
-  private val exe2mem_l = Wire(Flipped(new EXE2MEMBundle))
-  exe2mem_l.mem     := id2exe_r.mem
-  exe2mem_l.wb      := id2exe_r.wb
-  exe2mem_l.rf      := id2exe_r.rf
-  exe2mem_l.alu_out := alu_.io.out
-  exe2mem_l.pc      := id2exe_r.pc
-  exe2mem_l.valid   := id2exe_r.valid
+  // private val exe2mem_l = Wire(Flipped(new EXE2MEMBundle))
+  // exe2mem_l.mem     := id2exe_r.mem
+  // exe2mem_l.wb      := id2exe_r.wb
+  // exe2mem_l.rf      := id2exe_r.rf
+  // exe2mem_l.alu_out := alu_.io.out
+  // exe2mem_l.pc      := id2exe_r.pc
+  // exe2mem_l.valid   := id2exe_r.valid
+  private val exe2mem_l = EXE2MEMBundle(
+    id2exe_r.mem,
+    id2exe_r.wb,
+    id2exe_r.rf,
+    alu_.io.out,
+    id2exe_r.pc,
+    id2exe_r.valid
+  )
   /* ---------- ---------- MEM ---------- ---------- */
   private val exe2mem_r = Wire(new EXE2MEMBundle)
   pipe(exe2mem_l, exe2mem_r, true.B)
@@ -132,15 +150,23 @@ class CPUCore extends Module with HasCoreParameter {
   mem_.io.in.wdata := exe2mem_r.rf.vals.rs2
   mem_.io.valid    := exe2mem_r.valid
 
-  private val mem2wb_l = Wire(Flipped(new MEM2WB))
-  mem2wb_l.wb           := exe2mem_r.wb
-  mem2wb_l.data.alu_out := exe2mem_r.alu_out
-  mem2wb_l.data.pc      := exe2mem_r.pc
-  mem2wb_l.data.mem_out := mem_.io.rdata
-  mem2wb_l.rf           := exe2mem_r.rf
-  mem2wb_l.valid        := exe2mem_r.valid
+  // private val mem2wb_l = Wire(Flipped(new MEM2WBBundle))
+  // mem2wb_l.wb           := exe2mem_r.wb
+  // mem2wb_l.data.alu_out := exe2mem_r.alu_out
+  // mem2wb_l.data.mem_out := mem_.io.rdata
+  // mem2wb_l.data.pc      := exe2mem_r.pc
+  // mem2wb_l.rf           := exe2mem_r.rf
+  // mem2wb_l.valid        := exe2mem_r.valid
+  private val mem2wb_l = MEM2WBBundle(
+    exe2mem_r.wb,
+    exe2mem_r.alu_out,
+    mem_.io.rdata,
+    exe2mem_r.pc,
+    exe2mem_r.rf,
+    exe2mem_r.valid
+  )
   /* ---------- ---------- WB ---------- ---------- */
-  private val mem2wb_r = Wire(new MEM2WB)
+  private val mem2wb_r = Wire(new MEM2WBBundle)
   pipe(mem2wb_l, mem2wb_r, true.B)
   // mem2wb_r := mem2wb_l
 
