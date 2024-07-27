@@ -31,9 +31,37 @@ class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
   })
   private val _rf = Mem(NRReg, UInt(XLEN.W))
 
-  io.read.rs1_v := Mux(io.read.rs1_i === 0.U, 0.U, _rf(io.read.rs1_i))
-  io.read.rs2_v := Mux(io.read.rs2_i === 0.U, 0.U, _rf(io.read.rs2_i))
+  /* ---------- rs1 read ---------- */
+  io.read.rs1_v := Mux(
+    io.read.rs1_i === 0.U, // cond
+    0.U, // true
+    Mux( // false
+      io.write.valid,
+      Mux( // true
+        io.write.wen && io.write.rd_i === io.read.rs1_i, // cond
+        /* wen=true && 并且相等 */ io.write.wdata, // true
+        _rf(io.read.rs1_i) // false
+      ),
+      /* write invalid */ _rf(io.read.rs1_i) // false
+    )
+  )
 
+  /* ---------- rs2 read ---------- */
+  io.read.rs2_v := Mux(
+    io.read.rs2_i === 0.U,
+    0.U,
+    Mux(
+      io.write.valid,
+      Mux(
+        io.write.wen && io.write.rd_i === io.read.rs2_i,
+        /* wen=true && 并且相等 */ io.write.wdata,
+        _rf(io.read.rs2_i)
+      ),
+      /* write invalid */ _rf(io.read.rs2_i)
+    )
+  )
+
+  /* ---------- rd write ---------- */
   when(io.write.valid) {
     when(io.write.wen && (io.write.rd_i =/= 0.U)) {
       _rf(io.write.rd_i) := io.write.wdata
