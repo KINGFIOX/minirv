@@ -114,6 +114,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   val npc = MuxCase(
     pc + 4.U,
     Seq(
+      (io.br.id_isBr, pc),
       (io.br.exe_br.br_flag, io.br.exe_br.pc + io.br.exe_br.imm),
       (io.jmp.op === JMPOpType.jmp_JAL, io.jmp.pc + io.jmp.imm),
       (io.jmp.op === JMPOpType.jmp_JALR, (io.jmp.imm + io.jmp.imm) & ~1.U(XLEN.W)),

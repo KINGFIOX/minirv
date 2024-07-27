@@ -145,11 +145,10 @@ class CPUCore extends Module with HasCoreParameter {
   // mem2wb_r := mem2wb_l
 
   // 写入只读寄存器
-  regfile_.io.write.rd_i  := 0.U
-  regfile_.io.write.wdata := 0.U
+  regfile_.io.write.rd_i  := mem2wb_r.rf.idxes.rd
+  regfile_.io.write.wen   := mem2wb_r.wb.wen
   regfile_.io.write.valid := mem2wb_r.valid
-
-  val wdata = MuxCase(
+  regfile_.io.write.wdata := MuxCase(
     0.U,
     Seq(
       (mem2wb_r.wb.sel === WB_sel.wbsel_ALU, mem2wb_r.data.alu_out),
@@ -157,26 +156,14 @@ class CPUCore extends Module with HasCoreParameter {
       (mem2wb_r.wb.sel === WB_sel.wbsel_PC4, mem2wb_r.data.pc + 4.U)
     )
   )
-  regfile_.io.write.wdata := wdata
 
   /* ---------- debug ---------- */
 
-  // 这个 debug 的线，正好差了一个周期，懒得整了，直接 RegNext
-
-  val wen = MuxCase(
-    false.B,
-    Seq(
-      (mem2wb_r.wb.sel === WB_sel.wbsel_ALU, true.B),
-      (mem2wb_r.wb.sel === WB_sel.wbsel_MEM, true.B),
-      (mem2wb_r.wb.sel === WB_sel.wbsel_PC4, true.B)
-    )
-  )
-
-  io.dbg.wb_have_inst := mem2wb_r.valid
+  io.dbg.wb_have_inst := true.B
   io.dbg.wb_pc        := mem2wb_r.data.pc
-  io.dbg.wb_ena       := wen
-  io.dbg.wb_reg       := mem2wb_r.rf.idxes.rd
-  io.dbg.wb_value     := wdata
+  io.dbg.wb_ena       := regfile_.io.write.wen
+  io.dbg.wb_reg       := regfile_.io.write.rd_i
+  io.dbg.wb_value     := regfile_.io.write.wdata
   // val rd = cu_.io.rf.rd_i
 }
 
