@@ -28,8 +28,13 @@ class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
       val wen   = Input(Bool())
       val valid = Input(Bool())
     }
+    val dbg = Output(Vec(NRReg, UInt(XLEN.W)))
   })
   private val _rf = Mem(NRReg, UInt(XLEN.W))
+
+  for (i <- 0 until NRReg) {
+    io.dbg(i) := _rf(i.U)
+  }
 
   /* ---------- rs1 read ---------- */
   io.read.rs1_v := Mux(

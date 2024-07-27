@@ -23,6 +23,10 @@ class BRU extends Module with HasCoreParameter {
     val br_flag = Output(Bool())
   })
 
+  // when(io.in.bru_op =/= BRUOpType.bru_X) {
+  //   printf(p"rs1_v=${io.in.rs1_v}, rs2_v=${io.in.rs2_v}\n")
+  // }
+
   io.br_flag := false.B // default
 
   switch(io.in.bru_op) {

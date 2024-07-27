@@ -69,6 +69,10 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
       val exe_br  = Flipped(new BRU2IFBundle)
       val id_isBr = Input(Bool())
     }
+    val ld_hazard = new Bundle {
+      val happened = Input(Bool())
+      val pc       = Input(UInt(XLEN.W))
+    }
     // val debug =
   })
 
@@ -77,24 +81,31 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   private val pc = RegInit(UInt(XLEN.W), 0.U) // pc = 0
 
   io.irom.addr := pc
-  io.out.inst  := io.irom.inst
-  io.out.pc    := pc
+
+  io.out.inst := io.irom.inst
+
+  io.out.pc := pc
 
   io.out.valid := true.B // 默认是 true
 
   when(io.jmp.op =/= JMPOpType.jmp_X) {
     io.out.valid := false.B
-    io.out.inst  := 0x0000_0013.U
+    io.out.inst  := NOP.U
   }
 
   when(io.br.id_isBr) { // 插入气泡
     io.out.valid := false.B
-    io.out.inst  := 0x0000_0013.U
+    io.out.inst  := NOP.U
   }
 
   when(io.br.exe_br.br_flag) {
     io.out.valid := false.B
-    io.out.inst  := 0x0000_0013.U
+    io.out.inst  := NOP.U
+  }
+
+  when(io.ld_hazard.happened) {
+    io.out.valid := false.B
+    io.irom.addr := io.ld_hazard.pc
   }
 
   /* ---------- pc_next ---------- */
@@ -114,11 +125,15 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   val npc = MuxCase(
     pc + 4.U,
     Seq(
+      // 控制冒险
       (io.br.id_isBr, pc),
       (io.br.exe_br.br_flag, io.br.exe_br.pc + io.br.exe_br.imm),
       (io.jmp.op === JMPOpType.jmp_JAL, io.jmp.pc + io.jmp.imm),
       (io.jmp.op === JMPOpType.jmp_JALR, (io.jmp.imm + io.jmp.imm) & ~1.U(XLEN.W)),
-      (io.jmp.op === JMPOpType.jmp_ECALL, ECALL_ADDRESS.U)
+      (io.jmp.op === JMPOpType.jmp_ECALL, ECALL_ADDRESS.U),
+      // TODO ERET
+      // 数据冒险
+      (io.ld_hazard.happened, io.ld_hazard.pc + 4.U)
     )
   )
 
