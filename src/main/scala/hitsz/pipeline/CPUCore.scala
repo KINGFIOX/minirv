@@ -60,9 +60,6 @@ class CPUCore extends Module with HasCoreParameter {
   regfile_.io.read.rs1_i := if_r.inst(19, 15)
   regfile_.io.read.rs2_i := if_r.inst(24, 20)
 
-  // jmp
-  if_.io.jmp := JMPBundle(cu_.io.jmp_op, cu_.io.imm, if_r.pc, regfile_.io.read.rs1_v) // 传递给 if_ ， 为了处理 无条件跳转的 控制冒险
-
   // id_br
   if_.io.br.id_isBr := (cu_.io.bru_op =/= BRUOpType.bru_X)
 
@@ -76,6 +73,7 @@ class CPUCore extends Module with HasCoreParameter {
     cu_.io.mem,
     cu_.io.imm
   )
+
   /* ---------- ---------- EXE ---------- ---------- */
   // private val id2exe_r = Wire(new ID2EXEBundle)
   private val id2exe_r = pipe(id2exe_l, true.B)
@@ -172,7 +170,7 @@ class CPUCore extends Module with HasCoreParameter {
     // printf(p"rs1=exe2mem_l.alu_out=${exe2mem_l.alu_out}\n")
   }.elsewhen(hazard.isRAW_rs1(id2exe_l, mem2wb_l)) {
     id2exe_l.rf.vals.rs1 := mem2wb_l.wdata
-    printf(p"rs1=mem2wb_l.wdata=${mem2wb_l.wdata}\n")
+    // printf(p"rs1=mem2wb_l.wdata=${mem2wb_l.wdata}\n")
   }
   when(hazard.isRAW_rs2(id2exe_l, exe2mem_l)) {
     id2exe_l.rf.vals.rs2 := exe2mem_l.alu_out
@@ -181,6 +179,20 @@ class CPUCore extends Module with HasCoreParameter {
     id2exe_l.rf.vals.rs2 := mem2wb_l.wdata
     // printf(p"rs2=mem2wb_l.wdata=${mem2wb_l.wdata}\n")
   }
+
+  // jmp -> jalr/jal
+  if_.io.jmp := JMPBundle(
+    cu_.io.jmp_op,
+    cu_.io.imm,
+    if_r.pc,
+    MuxCase(
+      regfile_.io.read.rs1_v,
+      Seq(
+        (hazard.isRAW_rs1(if_r.inst(19, 15), exe2mem_l)) -> exe2mem_l.alu_out,
+        (hazard.isRAW_rs1(if_r.inst(19, 15), mem2wb_l))  -> mem2wb_l.wdata
+      )
+    )
+  ) // 传递给 if_ ， 为了处理 无条件跳转的 控制冒险
 
   // id2exe_l.rf.vals.rs2 := MuxCase(
   //   regfile_.io.read.rs2_v,
@@ -193,11 +205,12 @@ class CPUCore extends Module with HasCoreParameter {
   /* ---------- debug ---------- */
 
   io.dbg.wb_have_inst := mem2wb_r.valid
-  io.dbg.wb_pc        := RegNext(exe2mem_r.pc)
-  io.dbg.wb_ena       := mem2wb_r.wen
-  io.dbg.wb_reg       := mem2wb_r.rf.idxes.rd
-  io.dbg.wb_value     := mem2wb_r.wdata
-  io.dbg.inst_valid   := mem2wb_r.valid
+  // io.dbg.wb_have_inst := true.B
+  io.dbg.wb_pc      := RegNext(exe2mem_r.pc)
+  io.dbg.wb_ena     := mem2wb_r.wen
+  io.dbg.wb_reg     := mem2wb_r.rf.idxes.rd
+  io.dbg.wb_value   := mem2wb_r.wdata
+  io.dbg.inst_valid := mem2wb_r.valid
 
   // printf("========== pc = %x ==========\n", RegNext(exe2mem_r.pc))
   // for (i <- 0 until 32 by 4) {

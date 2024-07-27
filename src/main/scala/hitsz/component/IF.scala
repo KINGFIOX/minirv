@@ -91,6 +91,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   when(io.jmp.op =/= JMPOpType.jmp_X) {
     io.out.valid := false.B
     io.out.inst  := NOP.U
+    // printf()
   }
 
   when(io.br.id_isBr) { // 插入气泡
@@ -129,7 +130,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
       (io.br.id_isBr, pc),
       (io.br.exe_br.br_flag, io.br.exe_br.pc + io.br.exe_br.imm),
       (io.jmp.op === JMPOpType.jmp_JAL, io.jmp.pc + io.jmp.imm),
-      (io.jmp.op === JMPOpType.jmp_JALR, (io.jmp.imm + io.jmp.imm) & ~1.U(XLEN.W)),
+      (io.jmp.op === JMPOpType.jmp_JALR, (io.jmp.rs1_v + io.jmp.imm) & ~1.U(XLEN.W)),
       (io.jmp.op === JMPOpType.jmp_ECALL, ECALL_ADDRESS.U),
       // TODO ERET
       // 数据冒险
