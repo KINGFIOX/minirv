@@ -134,7 +134,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
       (io.jmp.op === JMPOpType.jmp_ECALL, ECALL_ADDRESS.U),
       // TODO ERET
       // 数据冒险
-      (io.ld_hazard.happened, io.ld_hazard.pc + 4.U)
+      (io.ld_hazard.happened, io.ld_hazard.pc)
     )
   )
 

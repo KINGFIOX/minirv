@@ -110,14 +110,6 @@ class CPUCore extends Module with HasCoreParameter {
   if_.io.br.exe_br.imm     := id2exe_r.imm
   if_.io.br.exe_br.pc      := id2exe_r.pc
 
-  // ***** mem-id data hazard *****
-  if_.io.ld_hazard.pc       := id2exe_l.pc
-  if_.io.ld_hazard.happened := false.B
-  when(hazard.is_ldRAW(id2exe_l, id2exe_r) && hazard.isLoad(id2exe_r.mem)) {
-    id2exe_l.valid            := false.B // 把新人废了
-    if_.io.ld_hazard.happened := true.B
-  }
-
   private val exe2mem_l = EXE2MEMBundle(
     id2exe_r.mem,
     id2exe_r.wb,
@@ -164,6 +156,16 @@ class CPUCore extends Module with HasCoreParameter {
   regfile_.io.write.valid := mem2wb_r.valid
   regfile_.io.write.wdata := mem2wb_r.wdata
 
+  /* ---------- ---------- hazard ---------- ---------- */
+
+  // ***** mem-id data hazard *****
+  if_.io.ld_hazard.pc       := id2exe_l.pc
+  if_.io.ld_hazard.happened := false.B
+  when(hazard.is_ldRAW(id2exe_l, id2exe_r) && hazard.isLoad(id2exe_r.mem)) {
+    id2exe_l.valid            := false.B // 把新人废了
+    if_.io.ld_hazard.happened := true.B
+  }
+
   // ***** WAW *****
   when(hazard.isRAW_rs1(id2exe_l, exe2mem_l)) {
     id2exe_l.rf.vals.rs1 := exe2mem_l.alu_out
@@ -193,14 +195,6 @@ class CPUCore extends Module with HasCoreParameter {
       )
     )
   ) // 传递给 if_ ， 为了处理 无条件跳转的 控制冒险
-
-  // id2exe_l.rf.vals.rs2 := MuxCase(
-  //   regfile_.io.read.rs2_v,
-  //   Seq(
-  //     (hazard.isRAW_rs2(id2exe_l, exe2mem_l)) -> exe2mem_l.alu_out,
-  //     (hazard.isRAW_rs2(id2exe_l, mem2wb_l))  -> mem2wb_l.wdata
-  //   )
-  // )
 
   /* ---------- debug ---------- */
 
