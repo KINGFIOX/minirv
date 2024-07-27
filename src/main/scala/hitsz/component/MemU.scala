@@ -56,7 +56,7 @@ class MemU extends Module with HasCoreParameter {
   switch(io.in.op) {
     is(MemUOpType.mem_X) { /* 啥也不干, 上面的默认值 */ }
     is(MemUOpType.mem_LB) {
-      printf("lb=%x\n", io.bus.rdata)
+      // printf("lb=%x\n", io.bus.rdata)
       io.rdata := SignExt(rdataVec(subword))
     }
     is(MemUOpType.mem_LH) { // 2 对齐
