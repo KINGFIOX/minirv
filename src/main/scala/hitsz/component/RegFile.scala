@@ -6,7 +6,7 @@ import hitsz.common.HasCoreParameter
 import hitsz.common.HasRegFileParameter
 
 object WB_sel extends ChiselEnum {
-  val wbsel_X, wbsel_ALU, wbsel_CSR, wbsel_MEM, wbsel_PC4 /* jal & jalr */ = Value
+  val wbsel_X, wbsel_ALU, wbsel_MEM, wbsel_PC4 /* jal & jalr */ = Value
 }
 
 class RFRead extends Bundle with HasCoreParameter with HasRegFileParameter {

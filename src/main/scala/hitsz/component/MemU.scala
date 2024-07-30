@@ -87,8 +87,9 @@ class MemU extends Module with HasCoreParameter {
       val byte = io.in.wdata(7, 0) // 取出来一个字节
       val zero = 0.U(XLEN.W).asTypeOf(Vec(dataBytes, UInt(8.W)))
       zero(subword) := byte
-      io.bus.wdata  := Mux(io.valid, zero.asUInt, 0.U)
-      io.bus.wen    := subword1H
+      io.bus.wdata  := zero.asUInt
+      io.bus.wen    := Mux(io.valid, subword1H, 0.U)
+      // io.bus.wen    := subword1H
     }
     is(MemUOpType.mem_SH) {
       when(subword === 0.U) {
