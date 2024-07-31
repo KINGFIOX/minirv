@@ -112,7 +112,6 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
     // /* ---------- dram ---------- */
 
     val bus0 = bridge.io.dev(0)
-
     if (ENV.isVivado) {
       // vivado
     } else {
