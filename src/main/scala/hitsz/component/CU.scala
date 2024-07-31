@@ -12,11 +12,11 @@ import hitsz.utils.SignExt
 import hitsz.common.HasRegFileParameter
 import hitsz.utils.ZeroExt
 
-/* ---------- ---------- csr 控制 ---------- ---------- */
+// /* ---------- ---------- csr 控制 ---------- ---------- */
 
-object CSR_op1_sel extends ChiselEnum {
-  val csr_op1_X, csr_op1_ZIMM, csr_op1_RS1 = Value
-}
+// object CSR_op1_sel extends ChiselEnum {
+//   val csr_op1_X, csr_op1_ZIMM, csr_op1_RS1 = Value
+// }
 
 /* ---------- ---------- alu 和他的 opN_sel 的控制 ---------- ---------- */
 
