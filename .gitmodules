@@ -1,0 +1,6 @@
+[submodule "cdp-tests"]
+	path = cdp-tests
+	url = git@github.com:KINGFIOX/cdp-tests.git
+[submodule "report"]
+	path = report
+	url = git@github.com:KINGFIOX/minirv-report.git
