@@ -2,12 +2,12 @@ package hitsz.io
 
 import chisel3._
 import chisel3.util._
-import hitsz.io.blackbox.DistributedSinglePortRAM
-import hitsz.io.blackbox.DistributedSinglePortROM
+import hitsz.io.vivado.DistributedSinglePortRAM
+import hitsz.io.vivado.DistributedSinglePortROM
 import hitsz.common.HasCoreParameter
 import hitsz.io.device.HasSevenSegParameter
-import hitsz.io.blackbox.PLL
-import hitsz.io.blackbox.CLKGen
+import hitsz.io.vivado.PLL
+import hitsz.io.vivado.CLKGen
 import hitsz.pipeline.CPUCore
 import hitsz.io.device.Bridge
 import hitsz.io.verilator.IROM
@@ -114,6 +114,20 @@ class miniRV_SoC(isVivado: Boolean) extends Module with HasSevenSegParameter wit
     val bus0 = bridge.io.dev(0)
     if (isVivado) {
       // vivado
+      val drams =
+        Seq(
+          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)), // [0]
+          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)), // [1]
+          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)), // [2]
+          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)) // [3]
+        )
+      bus0.rdata := drams(3).io.spo ## drams(2).io.spo ## drams(1).io.spo ## drams(0).io.spo
+      for (i <- 0 until drams.length) {
+        drams(i).io.clk := cpu_clk
+        drams(i).io.d   := bus0.wdata(i * 8 + 7, i * 8)
+        drams(i).io.a   := bus0.addr(vivado_addrBits, dataBytesBits)
+        drams(i).io.we  := bus0.wen(i)
+      }
     } else {
       val dram = Module(new DRAM("./start.bin"))
       dram.io.a  := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的

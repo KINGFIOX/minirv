@@ -1,4 +1,4 @@
-package hitsz.io.blackbox
+package hitsz.io.vivado
 
 import chisel3._
 import chisel3.util._
