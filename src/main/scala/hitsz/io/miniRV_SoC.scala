@@ -10,11 +10,10 @@ import hitsz.io.blackbox.PLL
 import hitsz.io.blackbox.CLKGen
 import hitsz.pipeline.CPUCore
 import hitsz.io.device.Bridge
-import hitsz.io.blackbox.IROM
-import hitsz.io.trace.DRAM
-import hitsz.io.trace.DebugBundle
+import hitsz.io.verilator.IROM
+import hitsz.io.verilator.DRAM
+import hitsz.io.verilator.DebugBundle
 import hitsz.io.device.SevenSegDigital
-import hitsz.ENV
 
 trait HasSocParameter {
 
@@ -28,7 +27,8 @@ trait HasSocParameter {
 
   val verilator_addrBits = 16
   def verilator_iromLens = 1 << verilator_addrBits // rom 有 (1 << 14) 个 word
-  def verilator_dramLens = 1 << verilator_addrBits
+  // def verilator_dramLens = 1 << verilator_addrBits
+  def verilator_dramLens = verilator_iromLens
 
   /* ---------- ---------- */
 
@@ -50,7 +50,7 @@ trait HasSocParameter {
   val ADDR_MEM_END   = 0xffff_f000
 }
 
-class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
+class miniRV_SoC(isVivado: Boolean) extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
   val io = IO(new Bundle {
     // /* ---------- 外设 ---------- */
@@ -75,7 +75,7 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
     val dbg = new DebugBundle
   })
 
-  val cpu_clk = if (ENV.isVivado) CLKGen(this.clock) else this.clock
+  val cpu_clk = if (isVivado) CLKGen(this.clock) else this.clock
 
   withClock(cpu_clk) {
 
@@ -86,12 +86,12 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
 
     /* ---------- irom ---------- */
 
-    if (ENV.isVivado) {
+    if (isVivado) {
       val irom = Module(new DistributedSinglePortROM(vivado_iromLens, XLEN))
       irom.io.a             := cpu_core.io.irom.addr(vivado_addrBits, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
     } else {
-      val irom = Module(new IROM)
+      val irom = Module(new IROM("./start.bin"))
       irom.io.a             := cpu_core.io.irom.addr(verilator_addrBits, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
     }
@@ -112,15 +112,14 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
     // /* ---------- dram ---------- */
 
     val bus0 = bridge.io.dev(0)
-    if (ENV.isVivado) {
+    if (isVivado) {
       // vivado
     } else {
-      val dram = Module(new DRAM("/home/wangfiox/Documents/minirv/cdp-tests/meminit.bin"))
-      dram.io.clk := this.clock
-      dram.io.a   := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的
-      dram.io.d   := bus0.wdata
-      dram.io.we  := bus0.wen
-      bus0.rdata  := dram.io.spo
+      val dram = Module(new DRAM("./start.bin"))
+      dram.io.a  := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的
+      dram.io.d  := bus0.wdata
+      dram.io.we := bus0.wen
+      bus0.rdata := dram.io.spo
     }
 
     // /* ---------- Seven 数码管 ---------- */
@@ -161,16 +160,4 @@ class miniRV_SoC extends Module with HasSevenSegParameter with HasSocParameter w
     // bus4.rdata := Cat(0.U((32 - 5).W), this.io.button)
 
   }
-}
-
-object miniRV_SoCTest extends App {
-
-  val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new miniRV_SoC,
-    args = Array("--target-dir", "generated"),
-    firtoolOpts = Array(
-      "--strip-debug-info",
-      "-disable-all-randomization"
-    )
-  )
 }

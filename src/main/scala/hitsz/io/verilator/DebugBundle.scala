@@ -1,4 +1,4 @@
-package hitsz.io.trace
+package hitsz.io.verilator
 
 import chisel3._
 import chisel3.util._

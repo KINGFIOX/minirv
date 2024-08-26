@@ -14,8 +14,8 @@ import hitsz.component.ALU_op2_sel
 import hitsz.component.WB_sel
 import hitsz.component.BRU
 
-import hitsz.io.blackbox.InstROMBundle
-import hitsz.io.trace.DebugBundle
+import hitsz.io.verilator.InstROMBundle
+import hitsz.io.verilator.DebugBundle
 import hitsz.utils.pipe
 import hitsz.component.JMPBundle
 import hitsz.component.BRUOpType
