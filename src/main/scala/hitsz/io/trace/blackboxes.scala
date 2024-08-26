@@ -6,7 +6,7 @@ import chisel3.util._
 /** @brief
   *   这些就不用参数化了, 已经写死了
   */
-class DRAM(init_path: String) extends BlackBox  {
+class DRAM(init_path: String) extends BlackBox {
   val io = IO(new Bundle {
     val clk = Input(Clock())
     val a   = Input(UInt(16.W))
