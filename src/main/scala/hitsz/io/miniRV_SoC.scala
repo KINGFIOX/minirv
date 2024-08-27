@@ -107,20 +107,12 @@ class miniRV_SoC(isVivado: Boolean) extends Module with HasSevenSegParameter wit
     val bus0 = bridge.io.dev(0)
     if (isVivado) {
       // vivado
-      val drams =
-        Seq(
-          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)), // [0]
-          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)), // [1]
-          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)), // [2]
-          Module(new DistributedSinglePortRAM(vivado_dramLens, 8)) // [3]
-        )
-      bus0.rdata := drams(3).io.spo ## drams(2).io.spo ## drams(1).io.spo ## drams(0).io.spo
-      for (i <- 0 until drams.length) {
-        drams(i).io.clk := cpu_clk
-        drams(i).io.d   := bus0.wdata(i * 8 + 7, i * 8)
-        drams(i).io.a   := bus0.addr(vivado_addrBits, dataBytesBits)
-        drams(i).io.we  := bus0.wen(i)
-      }
+      val dram = Module(new DistributedSinglePortRAM(vivado_dramLens, XLEN))
+      bus0.rdata  := dram.io.spo
+      dram.io.clk := cpu_clk
+      dram.io.a   := bus0.addr(vivado_addrBits, dataBytesBits)
+      dram.io.d   := bus0.wdata
+      dram.io.we  := bus0.wen
     } else {
       val dram = Module(new DRAM("./start.bin"))
       dram.io.a  := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的

@@ -97,7 +97,7 @@ class SevenSegDigital extends Module with HasCoreParameter with HasSevenSegParam
   private val decoder    = Module(new DigDecoder) // hex -> 数码管
   private val reg_bits_v = reg.asUInt.asTypeOf(Vec(XLEN / io.input_en.getWidth, UInt(4.W)))
   // decoder 的输入连着一个 mux
-  decoder.io.data := Mux1H(Seq.tabulate(8) { i =>
+  decoder.io.data := Mux1H(Seq.tabulate(digitNum) { i =>
     led_en(i) -> reg_bits_v(i)
   })
 
