@@ -50,7 +50,7 @@ trait HasSocParameter {
   val ADDR_MEM_END   = 0xffff_f000
 }
 
-class miniRV_SoC(isVivado: Boolean) extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
+class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
   val io = IO(new Bundle {
     // /* ---------- 外设 ---------- */
@@ -67,7 +67,7 @@ class miniRV_SoC(isVivado: Boolean) extends Module with HasSevenSegParameter wit
     //
     val switch = Input(UInt(switchBits.W)) // 拨码开关
     /* ---------- debug ---------- */
-    val dbg = new DebugBundle
+    val dbg = if (enableDebug) Some(new DebugBundle) else None
   })
 
   val cpu_clk = if (isVivado) CLKGen(this.clock) else this.clock
@@ -76,8 +76,10 @@ class miniRV_SoC(isVivado: Boolean) extends Module with HasSevenSegParameter wit
 
     /* ---------- CPU Core ---------- */
 
-    val cpu_core = Module(new CPUCore)
-    io.dbg := cpu_core.io.dbg
+    val cpu_core = Module(new CPUCore(false))
+    if (enableDebug) {
+      io.dbg.get := cpu_core.io.dbg.get
+    }
 
     /* ---------- irom ---------- */
 

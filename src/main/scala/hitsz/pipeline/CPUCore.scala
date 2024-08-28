@@ -34,11 +34,11 @@ class BusBundle extends Bundle with HasCoreParameter {
 
 // 命名约束: 有下划线的是模块
 
-class CPUCore extends Module with HasCoreParameter {
+class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   val io = IO(new Bundle {
     val irom = Flipped(new InstROMBundle)
     val bus  = new BusBundle
-    val dbg  = new DebugBundle
+    val dbg  = if (enableDebug) Some(new DebugBundle) else None
   })
 
   /* ---------- ---------- IF ---------- ---------- */
@@ -198,12 +198,15 @@ class CPUCore extends Module with HasCoreParameter {
 
   /* ---------- debug ---------- */
 
-  io.dbg.wb_have_inst := mem2wb_r.valid
-  // io.dbg.wb_have_inst := true.B
-  io.dbg.wb_pc    := RegNext(exe2mem_r.pc)
-  io.dbg.wb_ena   := mem2wb_r.wen
-  io.dbg.wb_reg   := mem2wb_r.rf.idxes.rd
-  io.dbg.wb_value := mem2wb_r.wdata
+  if (enableDebug) {
+    io.dbg.get.wb_have_inst := mem2wb_r.valid
+    io.dbg.get.wb_pc        := RegNext(exe2mem_r.pc)
+    io.dbg.get.wb_ena       := mem2wb_r.wen
+    io.dbg.get.wb_reg       := mem2wb_r.rf.idxes.rd
+    io.dbg.get.wb_value     := mem2wb_r.wdata
+    io.dbg.get.inst_valid   := mem2wb_r.valid
+
+  }
 
   // printf("========== pc = %x ==========\n", RegNext(exe2mem_r.pc))
   // for (i <- 0 until 32 by 4) {
@@ -213,13 +216,11 @@ class CPUCore extends Module with HasCoreParameter {
   //   printf(p"x(${i + 3}) = 0x${Hexadecimal(regfile_.io.dbg((i + 3).U))}\n")
   // }
 
-  io.dbg.inst_valid := mem2wb_r.valid
-
 }
 
 object CPUCore extends App {
   val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new CPUCore,
+    new CPUCore(false),
     args = Array("--target-dir", "generated"),
     firtoolOpts = Array(
       "--strip-debug-info",
