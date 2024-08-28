@@ -345,3 +345,4 @@ hs_err_pid*
 .vscode
 generated
 obj_dir
+*vivado*

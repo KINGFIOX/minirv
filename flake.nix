@@ -31,8 +31,6 @@
             (with pkgsCross.riscv32; [ buildPackages.gcc ])
             yosys
             verible
-            # python
-            python3Packages.requests
           ];
 
           shellHook = ''
