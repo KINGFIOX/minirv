@@ -114,7 +114,7 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
       dram.io.d   := bus0.wdata
       dram.io.we  := bus0.wen
     } else {
-      val dram = Module(new DRAM("./start.bin"))
+      val dram = Module(new DRAM)
       dram.io.clk := cpu_clk
       dram.io.a   := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的
       dram.io.d   := bus0.wdata
@@ -157,7 +157,7 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
 
     val bus3 = bridge.io.dev(2)
     if (isVivado) {
-      bus3.rdata := Cat(0.U((32 - 24).W), io.switch)
+      bus3.rdata := io.switch
     } else {
       bus3.rdata := (0x00a0_0000).U
     }

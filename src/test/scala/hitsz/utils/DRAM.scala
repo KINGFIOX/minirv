@@ -1,6 +1,7 @@
 package tests.hitsz.utils
 
 import scala.io.StdIn
+import scala.util.Random
 
 class DRAM(image: Array[Byte], val dram_base: Int, val size: Int) {
   private val dram: Array[Byte] = Array.fill(size)(0.toByte)
@@ -8,8 +9,12 @@ class DRAM(image: Array[Byte], val dram_base: Int, val size: Int) {
 
   def load(addr: Int): Int = {
     if (addr == SWITCH_ADDR) {
+      // print(s"switch: ")
       // StdIn.readLine().toInt
       0x00a0_0000
+      // val rand = Random.nextInt()
+      // println(s"switch: {:#x}", rand)
+      // rand
     } else if (dram_base <= addr && addr < dram_base + size) {
       val offset = (addr - dram_base) // dram 的 index
       (dram(offset) & 0x0ff) | ((dram(offset + 1) & 0x0ff) << 8) | ((dram(

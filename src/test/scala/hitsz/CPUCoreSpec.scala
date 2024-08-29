@@ -198,11 +198,12 @@ class CPUCoreSpec extends AnyFreeSpec with Matchers with HasSocParameter {
       // dut.clock.step()
 
       val user: Array[Byte] = Files.readAllBytes(new File("random.bin").toPath)
-      val irom              = new IROM(user, 0)
+      val irom              = new IROM(user, 0, (1 << 14) << 2)
       val dram              = new DRAM(user, 0, (1 << 14) << 2)
 
       var cycles: Int = 0
-      while (cycles < 10000) {
+      while (cycles < 1_000_000) {
+        // while (true) {
         println("========== ==========")
 
         val pc: Int   = dut.io.irom.addr.peek().litValue.toInt
@@ -224,7 +225,7 @@ class CPUCoreSpec extends AnyFreeSpec with Matchers with HasSocParameter {
           val asm  = disasm(inst)
           // println("write back")
           println(s"pc=${Integer.toHexString(pc)}, inst=${Integer.toHexString(inst)}")
-          println(s"${asm}")
+          println(s"asm = ${asm}")
           val wb_wen = dut.io.dbg.get.wb_ena.peek().litValue.toInt
           val wb_reg = dut.io.dbg.get.wb_reg.peek().litValue.toInt
           val wb_val = dut.io.dbg.get.wb_value.peek().litValue.toInt

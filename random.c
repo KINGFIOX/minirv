@@ -28,59 +28,12 @@ typedef union __dig {
     uint32_t _bits : 32;
 } __dig;
 
-__switch read();
-__dig adddd(__switch sw);
-__dig subtract(__switch sw);
-__dig multiply(__switch sw);
-__dig divide(__switch sw);
-__dig lfsr32(uint32_t*);
-void write(__dig val);
-
 /* ---------- ---------- random.c ---------- ---------- */
-
-int main(void)
-{
-    uint32_t seed = 0x07210487;
-    while (1) {
-        __switch cur = read();
-        volatile __dig dig;
-        switch (cur.op) {
-        case 0b001: /* add */
-            dig = adddd(cur);
-            break;
-        case 0b010: /* sub */
-            dig = subtract(cur);
-            break;
-        case 0b011: /* A * 2^B */
-            dig = multiply(cur);
-            break;
-        case 0b100: /* A / 2^B */
-            dig = divide(cur);
-            break;
-        case 0b101: /* lfsr */
-            dig = lfsr32(&seed);
-            break;
-        default:
-            break;
-        }
-        // if (cur.op == 0b0001) {
-        //     dig = adddd(cur);
-        // } else if (cur.op == 0b0010) {
-        //     dig = subtract(cur);
-        // } else if (cur.op == 0b0011) {
-        //     dig = multiply(cur);
-        // } else if (cur.op == 0b0100) {
-        //     dig = divide(cur);
-        // } else if (cur.op == 0b0101) {
-        //     dig = lfsr32(&seed);
-        // }
-        write(dig);
-    }
-}
 
 __switch read()
 {
     __switch val;
+    // memory map io
     asm volatile("lw %0, 0(%1)"
                  : "=r"(val) // 输出：把读取的值保存在`value`变量中
                  : "r"(SWITCH_ADDR) // 输入：内存地址`addr`
@@ -90,7 +43,6 @@ __switch read()
 
 void write(__dig val)
 {
-    // TODO cano
     if (val.integer <= 15) {
         // < 10 : 保持原样
         if (val.integer >= 10) {
@@ -115,7 +67,7 @@ uint32_t integer(uint32_t val)
     return (val >> 4) & 0b01111;
 }
 
-__dig adddd(__switch sw)
+__dig add(__switch sw)
 {
     uint32_t a_integer = integer(sw.A);
     uint32_t a_decimal = decimal(sw.A);
@@ -132,7 +84,7 @@ __dig adddd(__switch sw)
     return ret;
 }
 
-__dig subtract(__switch sw)
+__dig sub(__switch sw)
 {
     uint32_t a_integer;
     uint32_t a_decimal;
@@ -161,30 +113,27 @@ __dig subtract(__switch sw)
     return ret;
 }
 
-__dig multiply(__switch sw)
+__dig mul(__switch sw)
 {
-    uint32_t b_integer = integer(sw.B);
     // uint32_t b_decimal = decimal(sw.B);
     __dig ret;
     ret._bits = 0;
     ret.integer = integer(sw.A);
     ret.decimal = decimal(sw.A);
-    do {
+    for (uint32_t i = 0; i < integer(sw.B); i++) {
         ret.integer = ret.integer << 1;
         ret.decimal = ret.decimal << 1;
         if (ret.decimal >= 10) {
             ret.integer += 1;
             ret.decimal -= 10;
         }
-        b_integer--;
-    } while (b_integer > 0);
+    }
     return ret;
 }
 
-__dig divide(__switch sw)
+__dig div(__switch sw)
 {
     uint32_t b_integer = integer(sw.B);
-    // uint32_t b_decimal = decimal(sw.B);
     __dig ret;
     ret._bits = 0;
     ret.integer = integer(sw.A);
@@ -194,17 +143,47 @@ __dig divide(__switch sw)
     return ret;
 }
 
-__dig lfsr32(uint32_t* seed)
+__dig lfsr32(uint32_t seed)
 {
-    // for (uint32_t i = 0; i < 100000; i++) {
-    for (uint32_t i = 0; i < 100; i++) {
-        asm volatile("nop");
+    for (uint32_t i = 0; i < 100000; i++) {
+        asm volatile("add zero, zero, zero"
+                     :
+                     :
+                     : "memory");
     }
-    uint32_t lfsr = *seed;
-    uint32_t xor = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
-    lfsr = (lfsr >> 1) | (xor << 31);
-    *seed = lfsr;
+    uint32_t xor = ((seed >> 0) ^ (seed >> 2) ^ (seed >> 3) ^ (seed >> 5)) & 1;
+    seed = (seed >> 1) | (xor << 31);
     __dig ret;
-    ret._bits = lfsr;
+    ret._bits = seed;
     return ret;
+}
+
+int main(void)
+{
+    uint32_t seed = 0x07210487;
+    while (1) {
+        __switch cur = read();
+        volatile __dig dig;
+        switch (cur.op) {
+        case 0b001: /* add */
+            dig = add(cur);
+            break;
+        case 0b010: /* sub */
+            dig = sub(cur);
+            break;
+        case 0b011: /* A * 2^B */
+            dig = mul(cur);
+            break;
+        case 0b100: /* A / 2^B */
+            dig = div(cur);
+            break;
+        case 0b101: /* seed */
+            dig = lfsr32(seed);
+            seed = dig._bits;
+            break;
+        default:
+            break;
+        }
+        write(dig);
+    }
 }

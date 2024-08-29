@@ -6,7 +6,7 @@ import hitsz.io.HasSocParameter
 import hitsz.common.HasCoreParameter
 import chisel3.util.experimental.loadMemoryFromFile
 
-class DRAM(init_path: String) extends BlackBox {
+class DRAM extends BlackBox {
   val io = IO(new Bundle {
     val clk = Input(Clock())
     val a   = Input(UInt(16.W))
