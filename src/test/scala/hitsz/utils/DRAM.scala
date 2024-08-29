@@ -8,10 +8,15 @@ class DRAM(image: Array[Byte], val dram_base: Int, val size: Int) {
 
   def load(addr: Int): Int = {
     if (addr == SWITCH_ADDR) {
-      StdIn.readLine().toInt
-    } else {
+      // StdIn.readLine().toInt
+      0x00a0_0000
+    } else if (dram_base <= addr && addr < dram_base + size) {
       val offset = (addr - dram_base) // dram 的 index
-      (dram(offset) & 0x0ff) | ((dram(offset + 1) & 0x0ff) << 8) | ((dram(offset + 2) & 0x0ff) << 16) | ((dram(offset + 3) & 0x0ff) << 24)
+      (dram(offset) & 0x0ff) | ((dram(offset + 1) & 0x0ff) << 8) | ((dram(
+        offset + 2
+      ) & 0x0ff) << 16) | ((dram(offset + 3) & 0x0ff) << 24)
+    } else {
+      0
     }
   }
 

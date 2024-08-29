@@ -134,7 +134,8 @@ class CPUCoreSpec extends AnyFreeSpec with Matchers with HasSocParameter {
       case 0x37 => s"lui ${abi(rd)}, ${inst & 0x0_ffff_f000}"
       case 0x63 => // branch
         // val imm = (((inst >> 31) << 12) | ((inst >> 25) << 5) | ((inst >> 8) & 0x0f) | ((inst >> 7) & 0x01)) << 1
-        val imm = ((inst & 0x0_8000_0000) >> 19) | ((inst & 0x0_80) << 4) | ((inst >> 20) & 0x0_7e0) | ((inst >> 7) & 0x0_1e)
+        val imm =
+          ((inst & 0x0_8000_0000) >> 19) | ((inst & 0x0_80) << 4) | ((inst >> 20) & 0x0_7e0) | ((inst >> 7) & 0x0_1e)
         funct3 match {
           case 0x0 => s"beq ${abi(rs1)}, ${abi(rs2)}, $imm"
           case 0x1 => s"bne ${abi(rs1)}, ${abi(rs2)}, $imm"
@@ -149,7 +150,8 @@ class CPUCoreSpec extends AnyFreeSpec with Matchers with HasSocParameter {
         s"jalr ${abi(rd)}, ${abi(rs1)}, $imm"
       case 0x6f => // 0b110_1111 -> jal
         // val imm = (((inst >> 31) << 20) | ((inst >> 12) & 0xff) | ((inst >> 20) & 0x01) | ((inst >> 21) & 0x3ff))
-        val imm = ((inst & 0x0_8000_0000) >> 11) | (inst & 0x0_f_f000) | ((inst >> 9) & 0x0_800) | ((inst >> 20) & 0x0_7fe)
+        val imm =
+          ((inst & 0x0_8000_0000) >> 11) | (inst & 0x0_f_f000) | ((inst >> 9) & 0x0_800) | ((inst >> 20) & 0x0_7fe)
         s"jal ${abi(rd)}, $imm"
       case 0x73 => // 0b111_0011 -> system
         val csr_addr = inst >>> 20
@@ -166,12 +168,18 @@ class CPUCoreSpec extends AnyFreeSpec with Matchers with HasSocParameter {
               case 0x18 /* mret */ | 0x08 /* sret */ =>
                 "eret"
             }
-          case 0x1 => /* csrrw */ s"csrrw ${abi(rd)}, ${csr_abi(csr_addr)} ,${abi(rs1)}"
-          case 0x2 => /* csrrs */ s"csrrs ${abi(rd)}, ${csr_abi(csr_addr)} ,${abi(rs1)}"
-          case 0x3 => /* csrrc */ s"csrrc ${abi(rd)}, ${csr_abi(csr_addr)} ,${abi(rs1)}"
-          case 0x5 => /* csrrwi */ s"csrrwi ${abi(rd)}, ${csr_abi(csr_addr)} ,${rs1}"
-          case 0x6 => /* csrrsi */ s"csrrsi ${abi(rd)}, ${csr_abi(csr_addr)} ,${rs1}"
-          case 0x7 => /* csrrci */ s"csrrci ${abi(rd)}, ${csr_abi(csr_addr)} ,${rs1}"
+          case 0x1 => /* csrrw */
+            s"csrrw ${abi(rd)}, ${csr_abi(csr_addr)} ,${abi(rs1)}"
+          case 0x2 => /* csrrs */
+            s"csrrs ${abi(rd)}, ${csr_abi(csr_addr)} ,${abi(rs1)}"
+          case 0x3 => /* csrrc */
+            s"csrrc ${abi(rd)}, ${csr_abi(csr_addr)} ,${abi(rs1)}"
+          case 0x5 => /* csrrwi */
+            s"csrrwi ${abi(rd)}, ${csr_abi(csr_addr)} ,${rs1}"
+          case 0x6 => /* csrrsi */
+            s"csrrsi ${abi(rd)}, ${csr_abi(csr_addr)} ,${rs1}"
+          case 0x7 => /* csrrci */
+            s"csrrci ${abi(rd)}, ${csr_abi(csr_addr)} ,${rs1}"
           case _ => ""
         }
       case _ =>
@@ -179,37 +187,65 @@ class CPUCoreSpec extends AnyFreeSpec with Matchers with HasSocParameter {
     }
   }
 
+  val enableDebug = true
+
   "test cpu core" in {
-    simulate(new CPUCore(enableDebug = true)) { dut =>
-      dut.reset.poke(true.B)
-      dut.clock.step()
-      dut.reset.poke(false.B)
-      dut.clock.step()
+    simulate(new CPUCore(true)) { dut =>
+      // dut.reset.poke(true.B)
+      // dut.clock.step()
+      // dut.reset.poke(false.B)
+      // dut.clock.step()
+      // dut.clock.step()
 
       val user: Array[Byte] = Files.readAllBytes(new File("random.bin").toPath)
       val irom              = new IROM(user, 0)
       val dram              = new DRAM(user, 0, (1 << 14) << 2)
 
-      // var cycles: Int = 0
-      // while (true) {
+      var cycles: Int = 0
+      while (cycles < 10000) {
+        println("========== ==========")
 
-      //   val pc: Int   = dut.io.irom.addr.peek().litValue.toInt
-      //   val inst: Int = irom.fetch(pc)
-      //   dut.io.irom.inst.poke(inst)
-      //   val asm = disasm(inst)
-      //   println(asm)
+        val pc: Int   = dut.io.irom.addr.peek().litValue.toInt
+        val inst: Int = irom.fetch(pc)
+        dut.io.irom.inst.poke(inst)
 
-      //   val addr: Int  = dut.io.bus.addr.peek().litValue.toInt
-      //   val rdata: Int = dram.load(addr)
-      //   dut.io.bus.rdata.poke(rdata)
-      //   val wen   = dut.io.bus.wen.peek().litValue.toInt
-      //   val wdata = dut.io.bus.wdata.peek().litValue.toInt
-      //   dram.store(addr, wdata, wen)
+        val addr: Int  = dut.io.bus.addr.peek().litValue.toInt
+        val wen: Int   = dut.io.bus.wen.peek().litValue.toInt
+        val wdata: Int = dut.io.bus.wdata.peek().litValue.toInt
+        val rdata: Int = dram.load(addr)
+        dram.store(addr, wdata, wen)
+        dut.io.bus.rdata.poke(rdata)
 
-      //   // Step the simulation forward.
-      //   dut.clock.step()
-      //   cycles += 1
-      // }
+        val inst_valid = dut.io.dbg.get.inst_valid.peek().litValue.toInt
+        val have_inst  = dut.io.dbg.get.wb_have_inst.peek().litValue.toInt
+        if (inst_valid != 0) {
+          val pc   = dut.io.dbg.get.wb_pc.peek().litValue.toInt
+          val inst = irom.fetch(pc)
+          val asm  = disasm(inst)
+          // println("write back")
+          println(s"pc=${Integer.toHexString(pc)}, inst=${Integer.toHexString(inst)}")
+          println(s"${asm}")
+          val wb_wen = dut.io.dbg.get.wb_ena.peek().litValue.toInt
+          val wb_reg = dut.io.dbg.get.wb_reg.peek().litValue.toInt
+          val wb_val = dut.io.dbg.get.wb_value.peek().litValue.toInt
+          println(s"wen=${wb_wen}, rd=${abi(wb_reg)}, val=${Integer.toHexString(wb_val)}")
+          // for (i <- 0 until 32 by 4) {
+          //   val reg_val0 = dut.io.regs.get(i).peek().litValue.toInt
+          //   print(s"${abi(i)}=0x${Integer.toHexString(reg_val0)}\t")
+          //   val reg_val1 = dut.io.regs.get(i + 1).peek().litValue.toInt
+          //   print(s"${abi(i + 1)}=0x${Integer.toHexString(reg_val1)}\t")
+          //   val reg_val2 = dut.io.regs.get(i + 2).peek().litValue.toInt
+          //   print(s"${abi(i + 2)}=0x${Integer.toHexString(reg_val2)}\t")
+          //   val reg_val3 = dut.io.regs.get(i + 3).peek().litValue.toInt
+          //   println(s"${abi(i + 3)}=0x${Integer.toHexString(reg_val3)}")
+          // }
+        }
+
+        // Step the simulation forward.
+        dut.clock.step()
+
+        cycles += 1
+      }
 
     }
   }
