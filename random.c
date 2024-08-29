@@ -29,39 +29,51 @@ typedef union __dig {
 } __dig;
 
 __switch read();
-__dig add(__switch sw);
-__dig sub(__switch sw);
-__dig mul(__switch sw);
-__dig div(__switch sw);
-__dig lfsr32();
+__dig adddd(__switch sw);
+__dig subtract(__switch sw);
+__dig multiply(__switch sw);
+__dig divide(__switch sw);
+__dig lfsr32(uint32_t*);
 void write(__dig val);
 
 /* ---------- ---------- random.c ---------- ---------- */
 
 int main(void)
 {
+    uint32_t seed = 0x07210487;
     while (1) {
         __switch cur = read();
         volatile __dig dig;
         switch (cur.op) {
         case 0b001: /* add */
-            dig = add(cur);
+            dig = adddd(cur);
             break;
         case 0b010: /* sub */
-            dig = sub(cur);
+            dig = subtract(cur);
             break;
         case 0b011: /* A * 2^B */
-            dig = mul(cur);
+            dig = multiply(cur);
             break;
         case 0b100: /* A / 2^B */
-            dig = div(cur);
+            dig = divide(cur);
             break;
         case 0b101: /* lfsr */
-            dig = lfsr32();
+            dig = lfsr32(&seed);
             break;
         default:
             break;
         }
+        // if (cur.op == 0b0001) {
+        //     dig = adddd(cur);
+        // } else if (cur.op == 0b0010) {
+        //     dig = subtract(cur);
+        // } else if (cur.op == 0b0011) {
+        //     dig = multiply(cur);
+        // } else if (cur.op == 0b0100) {
+        //     dig = divide(cur);
+        // } else if (cur.op == 0b0101) {
+        //     dig = lfsr32(&seed);
+        // }
         write(dig);
     }
 }
@@ -93,21 +105,6 @@ void write(__dig val)
                  : "memory");
 }
 
-static void _exit()
-{
-    asm volatile(
-        "ecall\n" //
-        : // output
-        : // input
-        : "memory" // 破坏的寄存器
-    );
-}
-
-#define ASSERT(cond) \
-    if (!(cond)) {   \
-        _exit();     \
-    }
-
 uint32_t decimal(uint32_t val)
 {
     return val & 0b01111;
@@ -118,14 +115,12 @@ uint32_t integer(uint32_t val)
     return (val >> 4) & 0b01111;
 }
 
-__dig add(__switch sw)
+__dig adddd(__switch sw)
 {
     uint32_t a_integer = integer(sw.A);
     uint32_t a_decimal = decimal(sw.A);
-    ASSERT(a_decimal < 10);
     uint32_t b_integer = integer(sw.B);
     uint32_t b_decimal = decimal(sw.B);
-    ASSERT(b_decimal < 10);
     __dig ret;
     ret._bits = 0;
     ret.integer = a_integer + b_integer;
@@ -137,7 +132,7 @@ __dig add(__switch sw)
     return ret;
 }
 
-__dig sub(__switch sw)
+__dig subtract(__switch sw)
 {
     uint32_t a_integer;
     uint32_t a_decimal;
@@ -154,8 +149,6 @@ __dig sub(__switch sw)
         b_integer = integer(sw.A);
         b_decimal = decimal(sw.A);
     }
-    ASSERT(a_decimal < 10);
-    ASSERT(b_decimal < 10);
 
     __dig ret;
     ret._bits = 0;
@@ -168,11 +161,10 @@ __dig sub(__switch sw)
     return ret;
 }
 
-__dig mul(__switch sw)
+__dig multiply(__switch sw)
 {
     uint32_t b_integer = integer(sw.B);
-    uint32_t b_decimal = decimal(sw.B);
-    ASSERT(b_decimal == 0);
+    // uint32_t b_decimal = decimal(sw.B);
     __dig ret;
     ret._bits = 0;
     ret.integer = integer(sw.A);
@@ -189,11 +181,10 @@ __dig mul(__switch sw)
     return ret;
 }
 
-__dig div(__switch sw)
+__dig divide(__switch sw)
 {
     uint32_t b_integer = integer(sw.B);
-    uint32_t b_decimal = decimal(sw.B);
-    ASSERT(b_decimal == 0);
+    // uint32_t b_decimal = decimal(sw.B);
     __dig ret;
     ret._bits = 0;
     ret.integer = integer(sw.A);
@@ -203,11 +194,16 @@ __dig div(__switch sw)
     return ret;
 }
 
-__dig lfsr32()
+__dig lfsr32(uint32_t* seed)
 {
-    static uint32_t lfsr = 0x12345678;
+    // for (uint32_t i = 0; i < 100000; i++) {
+    for (uint32_t i = 0; i < 100; i++) {
+        asm volatile("nop");
+    }
+    uint32_t lfsr = *seed;
     uint32_t xor = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
     lfsr = (lfsr >> 1) | (xor << 31);
+    *seed = lfsr;
     __dig ret;
     ret._bits = lfsr;
     return ret;

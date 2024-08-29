@@ -1,4 +1,4 @@
-set_property -dict { IOSTANDARD LVCMOS33 PACKAGE_PIN P20 } [get_ports reset]
+set_property -dict { IOSTANDARD LVCMOS33 PACKAGE_PIN S6 } [get_ports reset]
 set_property -dict { IOSTANDARD LVCMOS33 PACKAGE_PIN Y18 } [get_ports clock]
 
 set_property -dict { IOSTANDARD LVCMOS33 PACKAGE_PIN  Y9 } [get_ports io_switch[23]]

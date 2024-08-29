@@ -28,7 +28,7 @@
             bear
             # utils
             qemu
-            (with pkgsCross.riscv32; [ buildPackages.gcc ])
+            (with pkgsCross.riscv32-embedded; [ buildPackages.gcc ])
             yosys
             verible
           ];
