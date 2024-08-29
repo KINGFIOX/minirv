@@ -145,12 +145,12 @@ __dig div(__switch sw)
 
 __dig lfsr32(uint32_t seed)
 {
-    for (uint32_t i = 0; i < 100000; i++) {
-        asm volatile("add zero, zero, zero"
-                     :
-                     :
-                     : "memory");
-    }
+    // for (uint32_t i = 0; i < 100000; i++) {
+    //     asm volatile("add zero, zero, zero"
+    //                  :
+    //                  :
+    //                  : "memory");
+    // }
     uint32_t xor = ((seed >> 0) ^ (seed >> 2) ^ (seed >> 3) ^ (seed >> 5)) & 1;
     seed = (seed >> 1) | (xor << 31);
     __dig ret;
