@@ -62,20 +62,13 @@ class BRU2IFBundle extends Bundle with HasCoreParameter {
   val valid   = Output(Bool())
 }
 
-class ID2IFBrBundle extends Bundle with HasCoreParameter {
-  val id_isBr = Output(Bool())
-  val valid   = Output(Bool())
-}
-
 class IF extends Module with HasCoreParameter with HasECALLParameter {
   val io = IO(new Bundle {
     val irom = Flipped(new InstROMBundle)
     val out  = new IF2IDBundle // 取指令输出, pc4 输出
     // val in   = new IFBundle
     val jmp = Flipped(new JMPBundle)
-    val br = new Bundle {
-      val exe_br = Flipped(new BRU2IFBundle)
-    }
+    val br  = Flipped(new BRU2IFBundle)
     val ld_hazard = new Bundle {
       val happened = Input(Bool())
       val valid    = Input(Bool())
@@ -102,7 +95,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     // printf()
   }
 
-  when(io.br.exe_br.br_flag && io.br.exe_br.valid) {
+  when(io.br.br_flag && io.br.valid) {
     io.out.valid := false.B
     io.out.inst  := NOP.U
   }
@@ -115,11 +108,11 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   /* ---------- pc_next ---------- */
 
-  val npc = MuxCase(
+  private val npc = MuxCase(
     pc + 4.U,
     Seq(
       // 控制冒险
-      (io.br.exe_br.br_flag && io.br.exe_br.valid, io.br.exe_br.pc + io.br.exe_br.imm),
+      (io.br.br_flag && io.br.valid, io.br.pc + io.br.imm),
       (io.jmp.op === JMPOpType.jmp_JAL && io.jmp.valid, io.jmp.pc + io.jmp.imm),
       (io.jmp.op === JMPOpType.jmp_JALR && io.jmp.valid, (io.jmp.rs1_v + io.jmp.imm) & ~1.U(XLEN.W)),
       (io.jmp.op === JMPOpType.jmp_ECALL && io.jmp.valid, ECALL_ADDRESS.U),
