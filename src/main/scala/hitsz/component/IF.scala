@@ -75,7 +75,6 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     val jmp = Flipped(new JMPBundle)
     val br = new Bundle {
       val exe_br = Flipped(new BRU2IFBundle)
-      val id_br  = Flipped(new ID2IFBrBundle)
     }
     val ld_hazard = new Bundle {
       val happened = Input(Bool())
@@ -103,11 +102,6 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     // printf()
   }
 
-  when(io.br.id_br.id_isBr && io.br.id_br.valid) { // 插入气泡
-    io.out.valid := false.B
-    io.out.inst  := NOP.U
-  }
-
   when(io.br.exe_br.br_flag && io.br.exe_br.valid) {
     io.out.valid := false.B
     io.out.inst  := NOP.U
@@ -121,23 +115,10 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   /* ---------- pc_next ---------- */
 
-  // 设置下一个时钟上升沿, pc
-
-  // val npc = MuxCase(
-  //   pc + 4.U,
-  //   Seq(
-  //     (io.in.npc_op === NPCOpType.npc_X, pc),
-  //     (io.in.npc_op === NPCOpType.npc_BR, Mux(io.in.br_flag, pc + io.in.imm, pc + 4.U)),
-  //     (io.in.npc_op === NPCOpType.npc_JAL, pc + io.in.imm),
-  //     (io.in.npc_op === NPCOpType.npc_JALR, (io.in.rs1_v + io.in.imm) & ~1.U(XLEN.W))
-  //   )
-  // )
-
   val npc = MuxCase(
     pc + 4.U,
     Seq(
       // 控制冒险
-      (io.br.id_br.id_isBr && io.br.id_br.valid, pc),
       (io.br.exe_br.br_flag && io.br.exe_br.valid, io.br.exe_br.pc + io.br.exe_br.imm),
       (io.jmp.op === JMPOpType.jmp_JAL && io.jmp.valid, io.jmp.pc + io.jmp.imm),
       (io.jmp.op === JMPOpType.jmp_JALR && io.jmp.valid, (io.jmp.rs1_v + io.jmp.imm) & ~1.U(XLEN.W)),

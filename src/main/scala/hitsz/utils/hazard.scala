@@ -15,9 +15,9 @@ object hazard {
     op === MemUOpType.mem_LB || op === MemUOpType.mem_LH || op === MemUOpType.mem_LW || op === MemUOpType.mem_LBU || op === MemUOpType.mem_LHU
   }
   def is_ldRAW(id: ID2EXEBundle /* 新人 */, exe: ID2EXEBundle /* 老人 */ ): Bool = {
-    (
+    exe.valid /* 值不值得转发 */ && (
       (id.rf.idxes.rs1 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U)
-      || (id.rf.idxes.rs2 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U)
+        || (id.rf.idxes.rs2 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U)
     )
   }
   // // write after write
@@ -26,22 +26,22 @@ object hazard {
   //   mem.rf.idxes.rd === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U
   // }
   def isRAW_rs1(id: ID2EXEBundle /* 新人 */, exe: EXE2MEMBundle /* 老人 */ ): Bool = {
-    id.rf.idxes.rs1 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U && exe.wb.wen
+    id.rf.idxes.rs1 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U && exe.wb.wen && exe.valid
   }
   def isRAW_rs1(id: ID2EXEBundle /* 新人 */, mem: MEM2WBBundle /* 老人 */ ): Bool = {
-    id.rf.idxes.rs1 === mem.rf.idxes.rd && mem.rf.idxes.rd =/= 0.U && mem.wen
+    id.rf.idxes.rs1 === mem.rf.idxes.rd && mem.rf.idxes.rd =/= 0.U && mem.wen && mem.valid
   }
   def isRAW_rs2(id: ID2EXEBundle /* 新人 */, exe: EXE2MEMBundle /* 老人 */ ): Bool = {
-    id.rf.idxes.rs2 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U && exe.wb.wen
+    id.rf.idxes.rs2 === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U && exe.wb.wen && exe.valid
   }
   def isRAW_rs2(id: ID2EXEBundle /* 新人 */, mem: MEM2WBBundle /* 老人 */ ): Bool = {
     // printf(p"id.alu_ctrl.op2_sel=${id.alu_ctrl.op2_sel}\n")
-    id.rf.idxes.rs2 === mem.rf.idxes.rd && mem.rf.idxes.rd =/= 0.U && mem.wen
+    id.rf.idxes.rs2 === mem.rf.idxes.rd && mem.rf.idxes.rd =/= 0.U && mem.wen && mem.valid
   }
   def isRAW_rs1(rs1_i: UInt, exe: EXE2MEMBundle) = {
-    rs1_i === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U && exe.wb.wen
+    rs1_i === exe.rf.idxes.rd && exe.rf.idxes.rd =/= 0.U && exe.wb.wen && exe.valid
   }
   def isRAW_rs1(rs1_i: UInt, mem: MEM2WBBundle) = {
-    rs1_i === mem.rf.idxes.rd && mem.rf.idxes.rd =/= 0.U && mem.wen
+    rs1_i === mem.rf.idxes.rd && mem.rf.idxes.rd =/= 0.U && mem.wen && mem.valid
   }
 }

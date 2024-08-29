@@ -61,9 +61,6 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   regfile_.io.read.rs1_i := if_r.inst(19, 15)
   regfile_.io.read.rs2_i := if_r.inst(24, 20)
 
-  // id_br
-  if_.io.br.id_br.id_isBr := (cu_.io.bru_op =/= BRUOpType.bru_X)
-
   private val id2exe_l = ID2EXEBundle(
     if_r.pc,
     if_r.valid,
@@ -80,9 +77,6 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
     cu_.io.mem,
     cu_.io.imm
   )
-
-  if_.io.br.id_br.valid := id2exe_l.valid
-
   /* ---------- ---------- EXE ---------- ---------- */
   // private val id2exe_r = Wire(new ID2EXEBundle)
   private val id2exe_r = pipe(id2exe_l, true.B)
@@ -118,6 +112,10 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   if_.io.br.exe_br.br_flag := bru_.io.br_flag
   if_.io.br.exe_br.imm     := id2exe_r.imm
   if_.io.br.exe_br.pc      := id2exe_r.pc
+
+  when(bru_.io.br_flag) {
+    id2exe_l.valid := false.B
+  }
 
   private val exe2mem_l = EXE2MEMBundle(
     id2exe_r.mem,
