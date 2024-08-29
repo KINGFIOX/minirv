@@ -19,7 +19,7 @@ class RFRead extends Bundle with HasCoreParameter with HasRegFileParameter {
 /** @brief
   *   寄存器堆, 但是其实不是一个 chisel 的 Module
   */
-class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
+class RegFile(enableDebug: Boolean) extends Module with HasRegFileParameter with HasCoreParameter {
   val io = IO(new Bundle {
     val read = new RFRead
     val write = new Bundle {
@@ -28,12 +28,15 @@ class RegFile extends Module with HasRegFileParameter with HasCoreParameter {
       val wen   = Input(Bool())
       val valid = Input(Bool())
     }
-    val dbg = Output(Vec(NRReg, UInt(XLEN.W)))
+    val dbg = if (enableDebug) Some(Output(Vec(NRReg, UInt(XLEN.W)))) else None
   })
   private val _rf = Mem(NRReg, UInt(XLEN.W))
 
-  for (i <- 0 until NRReg) {
-    io.dbg(i) := _rf(i.U)
+  if (enableDebug) {
+    for (i <- 0 until NRReg) {
+      val dbg = io.dbg.get
+      dbg(i) := _rf(i.U)
+    }
   }
 
   /* ---------- rs1 read ---------- */

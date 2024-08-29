@@ -39,6 +39,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
     val irom = Flipped(new InstROMBundle)
     val bus  = new BusBundle
     val dbg  = if (enableDebug) Some(new DebugBundle) else None
+    val regs = if (enableDebug) Some(Output(Vec(32, UInt(XLEN.W)))) else None
   })
 
   /* ---------- ---------- IF ---------- ---------- */
@@ -56,7 +57,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   cu_.io.inst := if_r.inst
 
   // reg file read
-  private val regfile_ = Module(new RegFile)
+  private val regfile_ = Module(new RegFile(enableDebug))
   regfile_.io.read.rs1_i := if_r.inst(19, 15)
   regfile_.io.read.rs2_i := if_r.inst(24, 20)
 
@@ -66,7 +67,13 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   private val id2exe_l = ID2EXEBundle(
     if_r.pc,
     if_r.valid,
-    RFRead(if_r.inst(19, 15), if_r.inst(24, 20), if_r.inst(11, 7), regfile_.io.read.rs1_v, regfile_.io.read.rs2_v),
+    RFRead(
+      if_r.inst(19, 15),
+      if_r.inst(24, 20),
+      if_r.inst(11, 7),
+      regfile_.io.read.rs1_v,
+      regfile_.io.read.rs2_v
+    ),
     cu_.io.alu_ctrl,
     cu_.io.bru_op,
     cu_.io.wb,
@@ -164,6 +171,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   when(hazard.is_ldRAW(id2exe_l, id2exe_r) && hazard.isLoad(id2exe_r.mem)) {
     id2exe_l.valid            := false.B // 把新人废了
     if_.io.ld_hazard.happened := true.B
+    // 如果新人是 jmp 也要作废
   }
 
   // ***** WAW *****
@@ -199,12 +207,18 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   /* ---------- debug ---------- */
 
   if (enableDebug) {
+
     io.dbg.get.wb_have_inst := mem2wb_r.valid
     io.dbg.get.wb_pc        := RegNext(exe2mem_r.pc)
     io.dbg.get.wb_ena       := mem2wb_r.wen
     io.dbg.get.wb_reg       := mem2wb_r.rf.idxes.rd
     io.dbg.get.wb_value     := mem2wb_r.wdata
     io.dbg.get.inst_valid   := mem2wb_r.valid
+    for (i <- 0 until 32) {
+      val dbg = io.regs.get
+      val reg = regfile_.io.dbg.get
+      dbg(i) := reg(i)
+    }
 
   }
 
@@ -214,7 +228,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   //   printf(p"x(${i + 1}) = 0x${Hexadecimal(regfile_.io.dbg((i + 1).U))}, ")
   //   printf(p"x(${i + 2}) = 0x${Hexadecimal(regfile_.io.dbg((i + 2).U))}, ")
   //   printf(p"x(${i + 3}) = 0x${Hexadecimal(regfile_.io.dbg((i + 3).U))}\n")
-  // }
+  // // }
 
 }
 

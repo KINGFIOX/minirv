@@ -76,10 +76,8 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
 
     /* ---------- CPU Core ---------- */
 
-    val cpu_core = Module(new CPUCore(false))
-    if (enableDebug) {
-      io.dbg.get := cpu_core.io.dbg.get
-    }
+    val cpu_core = Module(new CPUCore(enableDebug))
+    if (enableDebug) io.dbg.get := cpu_core.io.dbg.get
 
     /* ---------- irom ---------- */
 
@@ -117,7 +115,10 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
       dram.io.we  := bus0.wen
     } else {
       val dram = Module(new DRAM("./start.bin"))
-      dram.io.a  := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的
+      dram.io.a := bus0.addr(
+        verilator_addrBits,
+        dataBytesBits
+      ) // dram 是 word 寻址的
       dram.io.d  := bus0.wdata
       dram.io.we := bus0.wen
       bus0.rdata := dram.io.spo
@@ -139,6 +140,9 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
     io.DN_F         := dig.io.led.FN
     io.DN_G         := dig.io.led.GN
     io.DN_DP        := dig.io.led.dot
+    when(bus1.wen =/= 0.U) {
+      printf("%x", bus1.wdata)
+    }
 
     // /* ---------- 拨码开关 ---------- */
 
