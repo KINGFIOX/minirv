@@ -81,6 +81,14 @@ val JAL = BitPat("b?????????????????????????1101111")
 2. 控制冒险: br, 我采用了静态分支预测: 默认不跳转(因为最简单), exe 阶段会看是否跳转, 如果确实会跳转: 作废接下来的两条指令, 并把 npc 设置为 branch 指向的位置
 3. 控制冒险: 直接跳转, 我会作废接下来的一条指令, 并将 npc 设置为 jmp 指向的位置
 
+控制冒险会有几种: 非条件跳转、条件跳转。非条件跳转在译码阶段就可以识别。条件跳转在执行阶段得到结果。
+
+![branch](image/branch.png)
+
+![jmp](image/jmp.png)
+
+![load](image/load.png)
+
 ### IF
 
 ```scala
@@ -93,7 +101,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     val ld_hazard = new Bundle {
       val happened = Input(Bool())
       val valid    = Input(Bool())
-      val pc       = Input(UInt(XLEN.W))
+      val id_pc       = Input(UInt(XLEN.W))
     }
   })
   /* ---------- pc_cur ---------- */
@@ -112,8 +120,8 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
   }
   when(io.ld_hazard.happened && io.ld_hazard.valid) {
     io.out.valid := true.B
-    io.irom.addr := io.ld_hazard.pc
-    io.out.pc    := io.ld_hazard.pc
+    io.irom.addr := io.ld_hazard.id_pc
+    io.out.pc    := io.ld_hazard.id_pc
   }
   val npc = MuxCase(
     pc + 4.U,
@@ -132,9 +140,161 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 }
 ```
 
-控制冒险会有几种: 非条件跳转、条件跳转。非条件跳转在译码阶段就可以识别。条件跳转在执行阶段得到结果。
+这里会做的事情:
 
-![branch](image/branch.png)
+1. 如果发生了 load 指令的 raw, 那么 ld_hazard 会被传入 id 阶段的 pc, 然后重新取指令, 并且会掐住一个周期的 pc
+2. 如果发生了 jmp, 那么就作废已经取出来的指令, 并将 npc 指向正确的地址
+3. 如果确实发生了条件跳转(执行阶段), 将已经取出来的指令作废, 并将 npc 指向正确的地址
+
+### MemU 和 RegFile
+
+多加上了 valid 字段, 如果 valid=0, 那么禁用写入
+
+### CPUCore
+
+```scala
+class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
+  val io = IO(new Bundle {
+    val irom = Flipped(new InstROMBundle)
+    val bus  = new BusBundle
+    val dbg  = if (enableDebug) Some(new DebugBundle) else None
+    val regs = if (enableDebug) Some(Output(Vec(32, UInt(XLEN.W)))) else None
+  })
+  private val if_ = Module(new IF)
+  io.irom <> if_.io.irom
+  private val if_l = if_.io.out
+  val if_r = pipe(if_l, true.B)
+  private val cu_ = Module(new CU)
+  cu_.io.inst := if_r.inst
+  private val regfile_ = Module(new RegFile(enableDebug))
+  regfile_.io.read.rs1_i := if_r.inst(19, 15)
+  regfile_.io.read.rs2_i := if_r.inst(24, 20)
+  private val id2exe_l = ID2EXEBundle(
+    if_r.pc,
+    if_r.valid,
+    RFRead(
+      if_r.inst(19, 15),
+      if_r.inst(24, 20),
+      if_r.inst(11, 7),
+      regfile_.io.read.rs1_v,
+      regfile_.io.read.rs2_v
+    ),
+    cu_.io.alu_ctrl,
+    cu_.io.bru_op,
+    cu_.io.wb,
+    cu_.io.mem,
+    cu_.io.imm
+  )
+  private val id2exe_r = pipe(id2exe_l, true.B)
+  private val alu_ = Module(new ALU)
+  alu_.io.alu_op := id2exe_r.alu_ctrl.calc
+  alu_.io.op1_v := Mux1H(
+    Seq(
+      (id2exe_r.alu_ctrl.op1_sel === ALU_op1_sel.alu_op1sel_ZERO) -> 0.U,
+      (id2exe_r.alu_ctrl.op1_sel === ALU_op1_sel.alu_op1sel_PC)   -> (id2exe_r.pc),
+      (id2exe_r.alu_ctrl.op1_sel === ALU_op1_sel.alu_op1sel_RS1)  -> id2exe_r.rf.vals.rs1
+    )
+  )
+  alu_.io.op2_v := Mux1H(
+    Seq(
+      (id2exe_r.alu_ctrl.op2_sel === ALU_op2_sel.alu_op2sel_ZERO) -> 0.U,
+      (id2exe_r.alu_ctrl.op2_sel === ALU_op2_sel.alu_op2sel_IMM)  -> id2exe_r.imm,
+      (id2exe_r.alu_ctrl.op2_sel === ALU_op2_sel.alu_op2sel_RS2)  -> id2exe_r.rf.vals.rs2
+    )
+  )
+  private val bru_ = Module(new BRU)
+  bru_.io.in.rs1_v  := id2exe_r.rf.vals.rs1
+  bru_.io.in.rs2_v  := id2exe_r.rf.vals.rs2
+  bru_.io.in.bru_op := id2exe_r.bru_op
+  if_.io.br.br_flag := bru_.io.br_flag
+  if_.io.br.imm     := id2exe_r.imm
+  if_.io.br.pc      := id2exe_r.pc
+  when(bru_.io.br_flag) {
+    id2exe_l.valid := false.B
+  }
+  private val exe2mem_l = EXE2MEMBundle(
+    id2exe_r.mem,
+    id2exe_r.wb,
+    id2exe_r.rf,
+    alu_.io.out,
+    id2exe_r.pc,
+    id2exe_r.valid
+  )
+  if_.io.br.valid := exe2mem_l.valid
+  private val exe2mem_r = pipe(exe2mem_l, true.B)
+  private val mem_ = Module(new MemU)
+  mem_.io.bus <> io.bus
+  mem_.io.in.op    := exe2mem_r.mem
+  mem_.io.in.addr  := exe2mem_r.alu_out
+  mem_.io.in.wdata := exe2mem_r.rf.vals.rs2
+  mem_.io.valid    := exe2mem_r.valid
+  private val mem2wb_l = MEM2WBBundle(
+    exe2mem_r.wb.wen,
+    MuxCase(
+      0.U,
+      Seq(
+        (exe2mem_r.wb.sel === WB_sel.wbsel_ALU, exe2mem_r.alu_out),
+        (exe2mem_r.wb.sel === WB_sel.wbsel_MEM, mem_.io.rdata),
+        (exe2mem_r.wb.sel === WB_sel.wbsel_PC4, exe2mem_r.pc + 4.U)
+      )
+    ),
+    exe2mem_r.rf,
+    exe2mem_r.valid
+  )
+  private val mem2wb_r = pipe(mem2wb_l, true.B)
+  regfile_.io.write.rd_i  := mem2wb_r.rf.idxes.rd
+  regfile_.io.write.wen   := mem2wb_r.wen
+  regfile_.io.write.valid := mem2wb_r.valid
+  regfile_.io.write.wdata := mem2wb_r.wdata
+  if_.io.ld_hazard.id_pc    := id2exe_l.pc
+  if_.io.ld_hazard.happened := false.B
+  if_.io.ld_hazard.valid    := exe2mem_l.valid
+  when(hazard.is_ldRAW(id2exe_l, id2exe_r) && hazard.isLoad(id2exe_r.mem)) {
+    id2exe_l.valid            := false.B
+    if_.io.ld_hazard.happened := true.B
+  }
+  when(hazard.isRAW_rs1(id2exe_l, exe2mem_l)) {
+    id2exe_l.rf.vals.rs1 := exe2mem_l.alu_out
+  }.elsewhen(hazard.isRAW_rs1(id2exe_l, mem2wb_l)) {
+    id2exe_l.rf.vals.rs1 := mem2wb_l.wdata
+  }
+  when(hazard.isRAW_rs2(id2exe_l, exe2mem_l)) {
+    id2exe_l.rf.vals.rs2 := exe2mem_l.alu_out
+  }.elsewhen(hazard.isRAW_rs2(id2exe_l, mem2wb_l)) {
+    id2exe_l.rf.vals.rs2 := mem2wb_l.wdata
+  }
+  if_.io.jmp := JMPBundle(
+    cu_.io.jmp_op,
+    cu_.io.imm,
+    if_r.pc,
+    MuxCase(
+      regfile_.io.read.rs1_v,
+      Seq(
+        (hazard.isRAW_rs1(if_r.inst(19, 15), exe2mem_l)) -> exe2mem_l.alu_out,
+        (hazard.isRAW_rs1(if_r.inst(19, 15), mem2wb_l))  -> mem2wb_l.wdata
+      )
+    ),
+    id2exe_l.valid
+  )
+  if (enableDebug) {
+    io.dbg.get.wb_have_inst := mem2wb_r.valid
+    io.dbg.get.wb_pc        := RegNext(exe2mem_r.pc)
+    io.dbg.get.wb_ena       := mem2wb_r.wen
+    io.dbg.get.wb_reg       := mem2wb_r.rf.idxes.rd
+    io.dbg.get.wb_value     := mem2wb_r.wdata
+    io.dbg.get.inst_valid   := mem2wb_r.valid
+    for (i <- 0 until 32) {
+      val dbg = io.regs.get
+      val reg = regfile_.io.dbg.get
+      dbg(i) := reg(i)
+    }
+
+  }
+}
+```
+
+上面这段代码，相对于单周期，我增加了流水段寄存器，和数据旁路。
+以及：如果发生了控制冒险，我给段寄存器的输入加了一个 `valid = Mux(控制冒险 =/= 0, valid, 0)`
 
 ## 设计过程中遇到的问题及解决方法
 
@@ -211,3 +371,13 @@ rars 不好的地方: .data 和 .text 完全分开。但是会有问题: C 语�
 ### 总结 1
 
 个人部分认同语言无用论，但是较为优雅的语言令人身心愉悦，能写出怎么样的处理器取决于对体系结构的认识
+
+### 心得 1
+
+测试驱动开发, 许多情况其实我不一定考虑全了, 因此这个确实是测试驱动开发:
+遇到了报错, debug -> 修 bug
+
+### 心得 2
+
+其实几乎是不需要看波形的, 波形的信息密度很低, 而且看的时候需要能判断, 分析。
+我也就在一开始调时序的时候看了波形, 其他几乎都是看 difftest 的输出

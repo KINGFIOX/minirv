@@ -72,7 +72,7 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
     val ld_hazard = new Bundle {
       val happened = Input(Bool())
       val valid    = Input(Bool())
-      val pc       = Input(UInt(XLEN.W))
+      val id_pc    = Input(UInt(XLEN.W))
     }
     // val debug =
   })
@@ -102,8 +102,8 @@ class IF extends Module with HasCoreParameter with HasECALLParameter {
 
   when(io.ld_hazard.happened && io.ld_hazard.valid) {
     io.out.valid := true.B
-    io.irom.addr := io.ld_hazard.pc
-    io.out.pc    := io.ld_hazard.pc
+    io.irom.addr := io.ld_hazard.id_pc
+    io.out.pc    := io.ld_hazard.id_pc
   }
 
   /* ---------- pc_next ---------- */

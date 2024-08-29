@@ -133,7 +133,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   // pipe(exe2mem_l, exe2mem_r, true.B)
   // exe2mem_r := exe2mem_l
 
-  val mem_ = Module(new MemU)
+  private val mem_ = Module(new MemU)
   mem_.io.bus <> io.bus
   mem_.io.in.op    := exe2mem_r.mem
   mem_.io.in.addr  := exe2mem_r.alu_out
@@ -168,7 +168,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   /* ---------- ---------- hazard ---------- ---------- */
 
   // ***** mem-id data hazard *****
-  if_.io.ld_hazard.pc       := id2exe_l.pc
+  if_.io.ld_hazard.id_pc    := id2exe_l.pc
   if_.io.ld_hazard.happened := false.B
   if_.io.ld_hazard.valid    := exe2mem_l.valid
   when(hazard.is_ldRAW(id2exe_l, id2exe_r) && hazard.isLoad(id2exe_r.mem)) {

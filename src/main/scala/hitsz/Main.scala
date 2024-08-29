@@ -12,7 +12,7 @@ import java.lang.Enum
 
 object Main extends App {
   val s = _root_.circt.stage.ChiselStage.emitSystemVerilogFile(
-    new miniRV_SoC(isVivado = false, enableDebug = true),
+    new miniRV_SoC(isVivado = true, enableDebug = false),
     args = Array("--target-dir", "generated"),
     firtoolOpts = Array(
       "--strip-debug-info",
