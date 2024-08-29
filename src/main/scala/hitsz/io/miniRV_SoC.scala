@@ -53,19 +53,19 @@ trait HasSocParameter {
 class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with HasSevenSegParameter with HasSocParameter with HasCoreParameter {
 
   val io = IO(new Bundle {
-    // /* ---------- 外设 ---------- */
-    // 8 个数码管
-    val dig_en = Output(UInt(digitNum.W))
-    val DN_A   = Output(Bool())
-    val DN_B   = Output(Bool())
-    val DN_C   = Output(Bool())
-    val DN_D   = Output(Bool())
-    val DN_E   = Output(Bool())
-    val DN_F   = Output(Bool())
-    val DN_G   = Output(Bool())
-    val DN_DP  = Output(Bool())
-    //
-    val switch = Input(UInt(switchBits.W)) // 拨码开关
+    // // /* ---------- 外设 ---------- */
+    // // 8 个数码管
+    // val dig_en = Output(UInt(digitNum.W))
+    // val DN_A   = Output(Bool())
+    // val DN_B   = Output(Bool())
+    // val DN_C   = Output(Bool())
+    // val DN_D   = Output(Bool())
+    // val DN_E   = Output(Bool())
+    // val DN_F   = Output(Bool())
+    // val DN_G   = Output(Bool())
+    // val DN_DP  = Output(Bool())
+    // //
+    // val switch = Input(UInt(switchBits.W)) // 拨码开关
     /* ---------- debug ---------- */
     val dbg = if (enableDebug) Some(new DebugBundle) else None
   })
@@ -86,7 +86,7 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
       irom.io.a             := cpu_core.io.irom.addr(vivado_addrBits, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
     } else {
-      val irom = Module(new IROM("./start.bin"))
+      val irom = Module(new IROM)
       irom.io.a             := cpu_core.io.irom.addr(verilator_addrBits, dataBytesBits)
       cpu_core.io.irom.inst := irom.io.spo
     }
@@ -94,9 +94,9 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
     // /* ---------- bridge ---------- */
 
     val addr_space_range = Seq(
-      (ADDR_MEM_BEGIN, ADDR_MEM_END), // memory
-      (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte -> 数码管
-      (ADDR_SWITCH, ADDR_SWITCH + ledBytes) // 24 个 switch
+      (ADDR_MEM_BEGIN, ADDR_MEM_END) // memory
+      // (ADDR_DIG, ADDR_DIG + digitBytes), //  4 个 Byte -> 数码管
+      // (ADDR_SWITCH, ADDR_SWITCH + ledBytes) // 24 个 switch
     )
 
     val bridge = Module(new Bridge(addr_space_range))
@@ -115,39 +115,37 @@ class miniRV_SoC(isVivado: Boolean, enableDebug: Boolean) extends Module with Ha
       dram.io.we  := bus0.wen
     } else {
       val dram = Module(new DRAM("./start.bin"))
-      dram.io.a := bus0.addr(
-        verilator_addrBits,
-        dataBytesBits
-      ) // dram 是 word 寻址的
-      dram.io.d  := bus0.wdata
-      dram.io.we := bus0.wen
-      bus0.rdata := dram.io.spo
+      dram.io.clk := cpu_clk
+      dram.io.a   := bus0.addr(verilator_addrBits, dataBytesBits) // dram 是 word 寻址的
+      dram.io.d   := bus0.wdata
+      dram.io.we  := bus0.wen
+      bus0.rdata  := dram.io.spo
     }
 
-    // /* ---------- Seven 数码管 ---------- */
+    // // /* ---------- Seven 数码管 ---------- */
 
-    val bus1 = bridge.io.dev(1)
-    val dig  = Module(new SevenSegDigital)
-    dig.io.input_en := bus1.wen
-    dig.io.input    := bus1.wdata
-    bus1.rdata      := DontCare
-    io.dig_en       := dig.io.led_enable
-    io.DN_A         := dig.io.led.AN
-    io.DN_B         := dig.io.led.BN
-    io.DN_C         := dig.io.led.CN
-    io.DN_D         := dig.io.led.DN
-    io.DN_E         := dig.io.led.EN
-    io.DN_F         := dig.io.led.FN
-    io.DN_G         := dig.io.led.GN
-    io.DN_DP        := dig.io.led.dot
-    when(bus1.wen =/= 0.U) {
-      printf("%x", bus1.wdata)
-    }
+    // val bus1 = bridge.io.dev(1)
+    // val dig  = Module(new SevenSegDigital)
+    // dig.io.input_en := bus1.wen
+    // dig.io.input    := bus1.wdata
+    // bus1.rdata      := DontCare
+    // io.dig_en       := dig.io.led_enable
+    // io.DN_A         := dig.io.led.AN
+    // io.DN_B         := dig.io.led.BN
+    // io.DN_C         := dig.io.led.CN
+    // io.DN_D         := dig.io.led.DN
+    // io.DN_E         := dig.io.led.EN
+    // io.DN_F         := dig.io.led.FN
+    // io.DN_G         := dig.io.led.GN
+    // io.DN_DP        := dig.io.led.dot
+    // when(bus1.wen =/= 0.U) {
+    //   printf("%x", bus1.wdata)
+    // }
 
-    // /* ---------- 拨码开关 ---------- */
+    // // /* ---------- 拨码开关 ---------- */
 
-    val bus3 = bridge.io.dev(2)
-    bus3.rdata := Cat(0.U((32 - 24).W), io.switch)
+    // val bus3 = bridge.io.dev(2)
+    // bus3.rdata := Cat(0.U((32 - 24).W), io.switch)
 
   }
 }

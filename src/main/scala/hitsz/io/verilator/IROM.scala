@@ -11,19 +11,26 @@ class InstROMBundle extends Bundle with HasCoreParameter {
   val inst = Output(UInt(XLEN.W))
 }
 
-/** @brief
-  */
-class IROM(user: String) extends Module with HasSocParameter with HasCoreParameter {
+// /** @brief
+//   */
+// class IROM(user: String) extends Module with HasSocParameter with HasCoreParameter {
+//   val io = IO(new Bundle {
+//     val a   = Input(UInt(16.W))
+//     val spo = Output(UInt(32.W))
+//   })
+
+//   val size   = verilator_dramLens * dataBytes
+//   val memory = Mem(size, UInt(8.W))
+//   loadMemoryFromFile(memory, user)
+
+//   val addr = io.a << dataBytesBits
+//   io.spo := memory(addr + 3.U) ## memory(addr + 2.U) ## memory(addr + 1.U) ## memory(addr)
+
+// }
+
+class IROM extends BlackBox {
   val io = IO(new Bundle {
     val a   = Input(UInt(16.W))
     val spo = Output(UInt(32.W))
   })
-
-  val size   = verilator_dramLens * dataBytes
-  val memory = Mem(size, UInt(8.W))
-  loadMemoryFromFile(memory, user)
-
-  val addr = io.a << dataBytesBits
-  io.spo := memory(addr + 3.U) ## memory(addr + 2.U) ## memory(addr + 1.U) ## memory(addr)
-
 }
