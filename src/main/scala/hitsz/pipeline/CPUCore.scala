@@ -62,7 +62,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   regfile_.io.read.rs2_i := if_r.inst(24, 20)
 
   // id_br
-  if_.io.br.id_isBr := (cu_.io.bru_op =/= BRUOpType.bru_X)
+  if_.io.br.id_br.id_isBr := (cu_.io.bru_op =/= BRUOpType.bru_X)
 
   private val id2exe_l = ID2EXEBundle(
     if_r.pc,
@@ -80,6 +80,8 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
     cu_.io.mem,
     cu_.io.imm
   )
+
+  if_.io.br.id_br.valid := id2exe_l.valid
 
   /* ---------- ---------- EXE ---------- ---------- */
   // private val id2exe_r = Wire(new ID2EXEBundle)
@@ -125,6 +127,8 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
     id2exe_r.pc,
     id2exe_r.valid
   )
+
+  if_.io.br.exe_br.valid := exe2mem_l.valid
   /* ---------- ---------- MEM ---------- ---------- */
   // private val exe2mem_r = Wire(new EXE2MEMBundle)
   private val exe2mem_r = pipe(exe2mem_l, true.B)
@@ -168,6 +172,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
   // ***** mem-id data hazard *****
   if_.io.ld_hazard.pc       := id2exe_l.pc
   if_.io.ld_hazard.happened := false.B
+  if_.io.ld_hazard.valid    := exe2mem_l.valid
   when(hazard.is_ldRAW(id2exe_l, id2exe_r) && hazard.isLoad(id2exe_r.mem)) {
     id2exe_l.valid            := false.B // 把新人废了
     if_.io.ld_hazard.happened := true.B
@@ -201,7 +206,8 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
         (hazard.isRAW_rs1(if_r.inst(19, 15), exe2mem_l)) -> exe2mem_l.alu_out,
         (hazard.isRAW_rs1(if_r.inst(19, 15), mem2wb_l))  -> mem2wb_l.wdata
       )
-    )
+    ),
+    id2exe_l.valid
   ) // 传递给 if_ ， 为了处理 无条件跳转的 控制冒险
 
   /* ---------- debug ---------- */
