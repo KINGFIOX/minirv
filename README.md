@@ -296,6 +296,12 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
 上面这段代码，相对于单周期，我增加了流水段寄存器，和数据旁路。
 以及：如果发生了控制冒险，我给段寄存器的输入加了一个 `valid = Mux(控制冒险 =/= 0, valid, 0)`
 
+## CPU 仿真结果及分析
+
+![wave](image/wave.png)
+
+根据仿真图像的 id_pc4、ex_pc4、mem_pc4 和 wb_pc4，可以看出它们的 pc4 顺着时钟周期传递给下一个阶段的流水线寄存器，如 85ns 时，id_pc4=00000018，下一个时钟上升沿到来时，ex_pc4=00000018，下一个时钟上升沿到来时，mem_pc4=00000018，下一个时钟上升沿到来时，wb_pc4=00000018，实现了数据随着流水线寄存器而传送，符合预期。
+
 ## 设计过程中遇到的问题及解决方法
 
 ### 有问题的外设
