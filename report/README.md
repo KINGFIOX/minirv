@@ -49,7 +49,7 @@ val JAL = BitPat("b?????????????????????????1101111")
 如果看我的 git commit 记录，可以看到: 我曾实现过 6 条 csr 指令，但是发现: 这 6 条 csr 会与 ecall/中断等发生数据冒险,
 分析比较复杂, 于是乎 git reset 到了没有 csr 的版本。
 
-![alt text](image/csr-pipe.png)
+![alt text](/report/image/csr-pipe.png)
 
 ### 流水线 CPU 频率
 
@@ -65,11 +65,11 @@ val JAL = BitPat("b?????????????????????????1101111")
 
 ## 流水线 CPU 资源使用
 
-![impl](image/impl.png)
+![impl](/report/image/impl.png)
 
 ## 流水线 CPU 设计与实现
 
-![data](image/data.png)
+![data](/report/image/data.png)
 
 ### valid 令牌
 
@@ -85,11 +85,11 @@ val JAL = BitPat("b?????????????????????????1101111")
 
 控制冒险会有几种: 非条件跳转、条件跳转。非条件跳转在译码阶段就可以识别。条件跳转在执行阶段得到结果。
 
-![branch](image/branch.png)
+![branch](/report/image/branch.png)
 
-![jmp](image/jmp.png)
+![jmp](/report/image/jmp.png)
 
-![load](image/load.png)
+![load](/report/image/load.png)
 
 ### IF
 
@@ -300,7 +300,7 @@ class CPUCore(enableDebug: Boolean) extends Module with HasCoreParameter {
 
 ## CPU 仿真结果及分析
 
-![wave](image/wave.png)
+![wave](/report/image/wave.png)
 
 根据仿真图像的 id_pc4、ex_pc4、mem_pc4 和 wb_pc4，可以看出它们的 pc4 顺着时钟周期传递给下一个阶段的流水线寄存器，如 85ns 时，id_pc4=00000018，下一个时钟上升沿到来时，ex_pc4=00000018，下一个时钟上升沿到来时，mem_pc4=00000018，下一个时钟上升沿到来时，wb_pc4=00000018，实现了数据随着流水线寄存器而传送，符合预期。
 
